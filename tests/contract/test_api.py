@@ -174,3 +174,21 @@ def test_workspace_input_files_written(client, tmp_path):
     assert profile == {"name": "default"}
     for sub in ("repo", "context", "canonical", "reviews", "out"):
         assert (job_dir / sub).is_dir()
+
+
+def test_create_refused_when_executor_unhealthy(tmp_path):
+    """Design §10: refuse jobs when the executor self-check fails (503)."""
+    from req3.executor.base import HealthReport
+
+    class UnhealthyExecutor:
+        async def health(self):
+            return HealthReport(ok=False, detail="missing agents: ['req-designer']")
+
+    app = create_app(Config(data_dir=str(tmp_path / "data"), api_key=API_KEY))
+    with TestClient(app) as test_client:
+        app.state.executor = UnhealthyExecutor()
+        app.state.health_cache = None
+        response = test_client.post("/v1/jobs", json=CREATE_BODY, headers=AUTH)
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "executor_unavailable"
+        assert "req-designer" in response.json()["error"]["message"]

@@ -1,33 +1,69 @@
-# roles.yaml — backend-neutral role definitions (stub in M0, filled in M2).
-# Source of truth for role -> model tier, permissions, skills, tools
-# (design §2.1, §6.1). scripts/gen_opencode_config.py turns this into
-# opencode/opencode.json (GENERATED — do not hand-edit).
-# Logical roles map to opencode agents; another backend maps them its own way.
-model_tiers:                   # resolved against config.yaml `models`
+# roles.yaml — backend-neutral role definitions (design §2.1, §6.1).
+# Single source of truth for role -> model tier, permissions, skills, tools.
+# scripts/gen_opencode_config.py turns this into opencode/opencode.json
+# (GENERATED — do not hand-edit). Another backend maps the same roles its
+# own way. Prompts live in prompts/<role>.md.
+model_tiers:
   design: glm-5.3-flash
   review: glm-5.3
+defaults:
+  permission:
+    bash: deny
+    webfetch: deny
+    edit: deny
+    external_directory: deny
 roles:
   repo-scanner:
     model_tier: design
-    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> scan-worker
+    mode: primary
+    description: Reads the target repo and returns a bounded context summary JSON.
+    tools: {task: allow}          # fans out to scan-worker sub-agents
     skills: []
   req-designer:
     model_tier: design
-    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    mode: primary
+    description: Produces requirements JSON plus clarifying questions.
+    tools: {}
     skills: []
   req-reviewer:
     model_tier: review
-    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    mode: primary
+    description: Checklist review (full or verify-only) of requirements JSON.
+    tools: {}
     skills: []
   spec-designer:
     model_tier: design
-    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> spec-worker (L size only)
+    mode: primary
+    description: Produces spec JSON; may fan out per component on L-size projects.
+    tools: {task: allow}          # task -> spec-worker (L size only)
     skills: []
   spec-reviewer:
     model_tier: review
-    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> review-lens (round 1 only)
+    mode: primary
+    description: Reviews spec JSON; parallel lenses in round 1.
+    tools: {task: allow}          # task -> review-lens (round 1 only)
     skills: []
   revise-analyst:
     model_tier: review
-    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    mode: primary
+    description: Classifies a post-completion change request.
+    tools: {}
+    skills: []
+  scan-worker:
+    model_tier: design
+    mode: subagent
+    description: Summarizes one directory of a repo for repo-scanner.
+    tools: {}
+    skills: []
+  spec-worker:
+    model_tier: design
+    mode: subagent
+    description: Drafts one spec component for spec-designer.
+    tools: {}
+    skills: []
+  review-lens:
+    model_tier: review
+    mode: subagent
+    description: One review lens (completeness, consistency, testability).
+    tools: {}
     skills: []

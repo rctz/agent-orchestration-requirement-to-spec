@@ -1,0 +1,152 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "litellm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LiteLLM",
+      "options": {
+        "baseURL": "{env:LITELLM_BASE_URL}",
+        "apiKey": "{env:LITELLM_API_KEY}",
+        "headers": {
+          "User-Agent": "curl/8.7.1"
+        }
+      },
+      "models": {
+        "glm-5.3": {
+          "name": "glm-5.3"
+        },
+        "glm-5.3-flash": {
+          "name": "glm-5.3-flash"
+        }
+      }
+    }
+  },
+  "model": "litellm/glm-5.3-flash",
+  "share": "disabled",
+  "autoupdate": false,
+  "permission": {
+    "bash": "deny",
+    "webfetch": "deny",
+    "edit": "deny",
+    "external_directory": "deny"
+  },
+  "agent": {
+    "repo-scanner": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3-flash",
+      "prompt": "You are req3's repo scanner. Read the target repository and return a bounded\ncontext summary (stack, modules, conventions, existing interfaces,\nconstraints) as JSON. You read; you never modify anything.\n\n(Full prompt lands in M7 with the repo phase.)",
+      "description": "Reads the target repo and returns a bounded context summary JSON.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "task": true
+      }
+    },
+    "req-designer": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3-flash",
+      "prompt": "You are req3's requirements designer. Turn the user's prompt (plus any repo\ncontext and prior answers) into clear, testable requirements JSON, and ask\nonly the product/preference questions you cannot resolve yourself. Every\nrequirement has observable acceptance criteria.\n\n(Full prompt + skills land in M4 with the requirement phase.)",
+      "description": "Produces requirements JSON plus clarifying questions.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    },
+    "req-reviewer": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3",
+      "prompt": "You are req3's requirements reviewer. Review requirements JSON strictly\nagainst the phase checklist; report findings with checklist ids and severity\n(P0 wrong/contradictory/missing confirmed REQ, P1 ambiguity an implementer\nwould ask about, P2 polish). In verify mode you may only judge the previous\nfindings as resolved or not_resolved.\n\n(Full prompt + skills land in M4.)",
+      "description": "Checklist review (full or verify-only) of requirements JSON.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    },
+    "spec-designer": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3-flash",
+      "prompt": "You are req3's spec designer. Produce a design spec JSON that satisfies the\nconfirmed requirements: components, interfaces, data model, behaviors, error\nhandling, NFRs, test plan, tech choices. Every element traces to a\nrequirement; nothing without a requirement.\n\n(Full prompt + skills land in M5.)",
+      "description": "Produces spec JSON; may fan out per component on L-size projects.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "task": true
+      }
+    },
+    "spec-reviewer": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3",
+      "prompt": "You are req3's spec reviewer. Review spec JSON against the phase checklist:\ntraceability, interface completeness, data consistency, error/edge coverage,\nno scope creep. Round 1 may run parallel lenses; later rounds are\nverify-only on previous findings.\n\n(Full prompt + skills land in M5.)",
+      "description": "Reviews spec JSON; parallel lenses in round 1.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "task": true
+      }
+    },
+    "revise-analyst": {
+      "mode": "primary",
+      "model": "litellm/glm-5.3",
+      "prompt": "You are req3's revise analyst. Classify a post-completion change request:\nspec-only patch, requirements affected (back through the confirm gate), or\nquestions needed. Keep the classification minimal and justified.\n\n(Full prompt lands in M6.)",
+      "description": "Classifies a post-completion change request.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    },
+    "scan-worker": {
+      "mode": "subagent",
+      "model": "litellm/glm-5.3-flash",
+      "prompt": "You are a scan worker sub-agent. Summarize the assigned directory of a\nrepository: purpose, key files, exports/interfaces, conventions. Read only;\nreturn a compact JSON summary.\n\n(Full prompt lands in M7.)",
+      "description": "Summarizes one directory of a repo for repo-scanner.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    },
+    "spec-worker": {
+      "mode": "subagent",
+      "model": "litellm/glm-5.3-flash",
+      "prompt": "You are a spec worker sub-agent. Draft the assigned spec component\n(interfaces, data, behaviors) that satisfies the given requirements. Return\ncompact JSON for the component only.\n\n(Full prompt lands in M5.)",
+      "description": "Drafts one spec component for spec-designer.",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    },
+    "review-lens": {
+      "mode": "subagent",
+      "model": "litellm/glm-5.3",
+      "prompt": "You are a review lens sub-agent. Examine the given artifact through exactly\none lens (completeness, consistency, or testability) and report findings\nwith checklist ids and severity.\n\n(Full prompt lands in M5.)",
+      "description": "One review lens (completeness, consistency, testability).",
+      "permission": {
+        "bash": "deny",
+        "webfetch": "deny",
+        "edit": "deny",
+        "external_directory": "deny"
+      }
+    }
+  }
+}

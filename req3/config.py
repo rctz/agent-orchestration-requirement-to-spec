@@ -61,6 +61,24 @@ class RepoConfig(BaseModel):
     max_mb: int = 200
 
 
+def load_roles(path: str | Path | None = None) -> dict:
+    """Load roles.yaml (backend-neutral role definitions). Empty if missing."""
+    if path is None:
+        path = os.environ.get("REQ3_ROLES", "roles.yaml")
+    p = Path(path)
+    if not p.is_file():
+        return {}
+    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+
+
+def roles_requirements(roles: dict) -> tuple[list[str], list[str]]:
+    """Required agent names + provider-qualified model ids from roles.yaml."""
+    names = list((roles.get("roles") or {}).keys())
+    tiers = roles.get("model_tiers") or {}
+    models = sorted({f"litellm/{m}" for m in tiers.values()})
+    return names, models
+
+
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -84,6 +102,7 @@ class Config(BaseModel):
     opencode_url: str = "http://127.0.0.1:4096"
     data_dir: str = "data"
     executor: Literal["stub", "opencode"] = "stub"  # design §2.1: config-selected
+    roles_path: str = "roles.yaml"  # backend-neutral roles (drives required agents)
     repo: RepoConfig = RepoConfig()
 
     # Secrets: env only, never YAML.

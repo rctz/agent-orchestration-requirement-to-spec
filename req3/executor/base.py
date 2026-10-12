@@ -67,10 +67,25 @@ class StubExecutor:
     async def cancel(self, run_id: str) -> None:
         return None
 
+    async def aclose(self) -> None:
+        return None
 
-def get_executor(name: str) -> Executor:
-    executors: dict[str, type] = {"stub": StubExecutor}
-    try:
-        return executors[name]()
-    except KeyError:
-        raise ValueError(f"unknown executor backend: {name!r}") from None
+
+def get_executor(
+    config: Any,
+    required_agents: tuple[str, ...] | list[str] = (),
+    required_models: tuple[str, ...] | list[str] = (),
+) -> Executor:
+    """Select the executor backend by config (design §2.1)."""
+    if config.executor == "stub":
+        return StubExecutor()
+    if config.executor == "opencode":
+        from .opencode import OpencodeExecutor  # lazy: keeps stub path import-free
+
+        return OpencodeExecutor(
+            config.opencode_url,
+            password=config.opencode_server_password,
+            required_agents=required_agents,
+            required_models=required_models,
+        )
+    raise ValueError(f"unknown executor backend: {config.executor!r}")

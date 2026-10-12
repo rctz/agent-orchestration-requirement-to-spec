@@ -20,7 +20,7 @@ echo "==> rsync code -> $HOST:$REMOTE_DIR"
 rsync -az --delete \
   --exclude .git/ --exclude data/ --exclude .venv/ \
   --exclude __pycache__/ --exclude .pytest_cache/ --exclude .ruff_cache/ \
-  --exclude '*.pyc' --exclude .env \
+  --exclude '*.pyc' --exclude '*.egg-info/' --exclude .env \
   "$SRC"/ "$HOST":"$REMOTE_DIR"/
 
 echo "==> copy .env (mode 600, values never printed)"

@@ -7,6 +7,7 @@ engine milestones (M4+).
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -121,11 +122,29 @@ async def _get_job_or_404(request: Request, job_id: str) -> JobRecord:
     return rec
 
 
+async def _ensure_executor_healthy(request: Request) -> None:
+    """Refuse new jobs when the executor is down/misconfigured (design §10).
+
+    Health is cached for 30s so create stays cheap.
+    """
+    cache = getattr(request.app.state, "health_cache", None)
+    now = time.time()
+    if cache is not None and now - cache[0] < 30:
+        if not cache[1].ok:
+            raise ApiError(503, "executor_unavailable", cache[1].detail)
+        return
+    report = await request.app.state.executor.health()
+    request.app.state.health_cache = (now, report)
+    if not report.ok:
+        raise ApiError(503, "executor_unavailable", report.detail)
+
+
 # ---- routes ---------------------------------------------------------------
 
 
 @router.post("/jobs", status_code=202)
 async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]:
+    await _ensure_executor_healthy(request)
     db = request.app.state.db
     idem = request.headers.get("idempotency-key")
     if idem:

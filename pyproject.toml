@@ -32,6 +32,7 @@ include = ["req3*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 markers = [
     "live: tests that call the real opencode/LLM stack (opt-in: -m live)",
 ]
