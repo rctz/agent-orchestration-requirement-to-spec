@@ -135,6 +135,63 @@ def test_custom_inline_profile_renders():
     assert "manifest.json" in outputs  # manifest always present
 
 
+def test_render_with_missing_optional_fields():
+    """Live-M5 regression: LLM docs may omit optional fields (refs, rules,
+    question_id, interface inputs/outputs/errors, edge_cases) — StrictUndefined
+    must not blow up on them."""
+    requirements = {
+        "project": "bare",
+        "version": 1,
+        "size": "S",
+        "goal": "Bare doc with optional fields missing.",
+        "users": ["u"],
+        "scope": {"in": [], "out": []},
+        "requirements": [
+            {
+                "id": "REQ-001",
+                "kind": "functional",
+                "title": "No refs key",
+                "body": "body",
+                "acceptance": ["Given x then y"],
+                "priority": "must",
+            }
+        ],
+        "decisions": [{"id": "D-01", "answer": "yes", "source": "user"}],
+    }
+    spec = {
+        "project": "bare",
+        "version": 1,
+        "requirements_version": 1,
+        "overview": "overview",
+        "architecture": {
+            "summary": "s",
+            "components": [
+                {"id": "C-01", "name": "c", "responsibility": "r", "satisfies": ["REQ-001"]}
+            ],
+        },
+        "interfaces": [
+            {
+                "id": "I-01",
+                "component": "C-01",
+                "kind": "function",
+                "signature": "f()",
+                "satisfies": ["REQ-001"],
+            }
+        ],
+        "behaviors": [{"id": "B-01", "req": "REQ-001", "steps": ["s1"]}],
+        "test_plan": [{"id": "T-01", "verifies": ["REQ-001"], "case": "c"}],
+    }
+    outputs = render_profile(
+        "default",
+        requirements=requirements,
+        spec=spec,
+        meta={"job_id": "j_x", "status": "completed", "versions": {"requirements": 1, "spec": 1}},
+    )
+    assert b"REQ-001" in outputs["requirement.md"]
+    assert b"C-01" in outputs["spec.md"]
+    assert "manifest.json" in outputs
+
+
 def test_builtin_profiles_load():
     for name in ("default", "json"):
         profile = load_builtin_profile(name)

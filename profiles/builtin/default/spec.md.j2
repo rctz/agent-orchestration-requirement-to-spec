@@ -25,24 +25,24 @@
 ```
 {{ interface.signature }}
 ```
-{% if interface.inputs %}
+{% if interface.get('inputs') %}
 Inputs:
 
-{% for item in interface.inputs -%}
+{% for item in interface.get('inputs') -%}
 - {{ item }}
 {% endfor %}
 {% endif %}
-{% if interface.outputs %}
+{% if interface.get('outputs') %}
 Outputs:
 
-{% for item in interface.outputs -%}
+{% for item in interface.get('outputs') -%}
 - {{ item }}
 {% endfor %}
 {% endif %}
-{% if interface.errors %}
+{% if interface.get('errors') %}
 Errors:
 
-{% for item in interface.errors -%}
+{% for item in interface.get('errors') -%}
 - {{ item }}
 {% endfor %}
 {% endif %}
@@ -66,10 +66,10 @@ Satisfies: {{ interface.satisfies | join(", ") }}
 {% for step in behavior.steps -%}
 {{ loop.index }}. {{ step }}
 {% endfor %}
-{% if behavior.edge_cases %}
+{% if behavior.get('edge_cases') %}
 Edge cases:
 
-{% for case in behavior.edge_cases -%}
+{% for case in behavior.get('edge_cases') -%}
 - {{ case }}
 {% endfor %}
 {% endif %}

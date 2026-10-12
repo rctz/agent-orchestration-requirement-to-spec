@@ -33,7 +33,7 @@
 
 - Kind: {{ req.kind }}
 - Priority: {{ req.priority }}
-{% if req.refs %}- Refs: {{ req.refs | join(", ") }}
+{% if req.get('refs') %}- Refs: {{ req.get('refs') | join(", ") }}
 {% endif %}
 {{ req.body }}
 
@@ -49,7 +49,7 @@ Acceptance:
 ### {{ entity.name }}
 
 {% for field in entity.fields -%}
-- `{{ field.name }}` ({{ field.type }}){% if field.rules %} — {{ field.rules }}{% endif %}
+- `{{ field.name }}` ({{ field.type }}){% if field.get('rules') %} — {{ field.get('rules') }}{% endif %}
 
 {% endfor %}
 {% endfor %}
@@ -70,7 +70,7 @@ Formats: {{ formats | join(", ") }}
 ## Decisions
 
 {% for decision in r.get('decisions', []) -%}
-- **{{ decision.id }}**{% if decision.question_id %} ({{ decision.question_id }}){% endif %}: {{ decision.answer }} — _{{ decision.source }}_{% if decision.source == 'system_default_expired' %} (chosen by system: question expired without answer){% endif %}
+- **{{ decision.id }}**{% if decision.get('question_id') %} ({{ decision.get('question_id') }}){% endif %}: {{ decision.answer }} — _{{ decision.source }}_{% if decision.source == 'system_default_expired' %} (chosen by system: question expired without answer){% endif %}
 
 {% endfor %}
 {% if not r.get('decisions') %}
