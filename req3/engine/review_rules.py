@@ -113,3 +113,47 @@ def apply_diff_guard(
             kept.sort(key=lambda i: order.get(i.get("id"), 0) if i.get("id") in order else 10_000)
             guarded["requirements"] = kept
     return guarded, sorted(reverted)
+
+
+def apply_spec_diff_guard(
+    old_doc: dict[str, Any],
+    new_doc: dict[str, Any],
+    target_ids: set[str],
+) -> tuple[dict[str, Any], list[str]]:
+    """Spec-side diff guard: revert changes to elements NOT in target_ids.
+
+    Guards components / interfaces / behaviors / test_plan by element id;
+    other top-level sections pass through (the caller logs them)."""
+    guarded = copy.deepcopy(new_doc)
+    reverted: set[str] = set()
+
+    def guard(items: list[Any], old_items: dict[str, Any]) -> list[Any]:
+        kept = []
+        for item in items:
+            item_id = item.get("id") if isinstance(item, dict) else None
+            if item_id is None or item_id in target_ids:
+                kept.append(item)
+                continue
+            if item_id in old_items and item != old_items[item_id]:
+                kept.append(copy.deepcopy(old_items[item_id]))
+                reverted.add(item_id)
+            elif item_id not in old_items:
+                reverted.add(item_id)  # untargeted addition
+            else:
+                kept.append(item)
+        return kept
+
+    old_components = {
+        i["id"]: i for i in old_doc.get("architecture", {}).get("components", [])
+    }
+    if old_components:
+        components = guarded.setdefault("architecture", {}).setdefault("components", [])
+        guarded["architecture"]["components"] = guard(components, old_components)
+    for section in ("interfaces", "behaviors", "test_plan"):
+        old_items = {
+            i["id"]: i for i in old_doc.get(section, [])
+            if isinstance(i, dict) and "id" in i
+        }
+        if old_items or guarded.get(section):
+            guarded[section] = guard(guarded.get(section, []), old_items)
+    return guarded, sorted(reverted)

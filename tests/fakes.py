@@ -115,3 +115,51 @@ QUESTION = {
     "default_answer": "No",
     "default_rationale": "prompt does not mention X",
 }
+
+
+def make_spec(reqs: tuple[str, ...], version: int = 1) -> dict:
+    """A valid spec doc tracing every given requirement id."""
+    return {
+        "project": "demo",
+        "version": version,
+        "requirements_version": 1,
+        "overview": "One component does the work.",
+        "architecture": {
+            "summary": "Single component.",
+            "components": [
+                {
+                    "id": "C-01",
+                    "name": "core",
+                    "responsibility": "Does everything the requirements ask.",
+                    "satisfies": list(reqs),
+                }
+            ],
+        },
+        "interfaces": [
+            {
+                "id": "I-01",
+                "component": "C-01",
+                "kind": "function",
+                "signature": "do_work(input)",
+                "inputs": ["input"],
+                "outputs": ["result"],
+                "errors": ["ValueError on invalid input"],
+                "satisfies": list(reqs),
+            }
+        ],
+        "data_model": [],
+        "behaviors": [
+            {"id": f"B-{i + 1:02d}", "req": rid,
+             "steps": ["receive", "process", "return"], "edge_cases": ["invalid input"]}
+            for i, rid in enumerate(reqs)
+        ],
+        "error_handling": [{"case": "invalid input", "behaviour": "raise ValueError"}],
+        "nfr": [{"aspect": "performance", "requirement": "fast enough"}],
+        "test_plan": [
+            {"id": f"T-{i + 1:02d}", "verifies": [rid], "case": f"acceptance of {rid}"}
+            for i, rid in enumerate(reqs)
+        ],
+        "tech_choices": [{"choice": "stdlib only", "rationale": "small"}],
+        "known_issues": [],
+        "extensions": {},
+    }

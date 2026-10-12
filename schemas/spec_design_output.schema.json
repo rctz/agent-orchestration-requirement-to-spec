@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/spec_design_output.schema.json",
+  "title": "spec-designer output envelope: the canonical spec document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec"],
+  "properties": {
+    "spec": {"$ref": "req3/spec.schema.json"}
+  }
+}

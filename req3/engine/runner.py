@@ -227,9 +227,18 @@ class JobRunner:
             return await self._requirement.req_design(ctx)
         if phase == "req_review":
             return await self._requirement.req_review(ctx)
-        if phase in ("spec_design", "spec_review", "render", "publish"):
+        if phase == "spec_design":
+            from .phases import spec
+
+            return await spec.spec_design(ctx)
+        if phase == "spec_review":
+            from .phases import spec
+
+            return await spec.spec_review(ctx)
+        if phase in ("render", "publish"):
+            # rendering happens inside spec_review completion; publish is M9+
             raise PhaseError(
-                f"phase {phase!r} is implemented in a later milestone (M5+)",
+                f"phase {phase!r} is not reachable in this flow yet",
                 code="phase_unavailable",
             )
         raise PhaseError(f"unknown phase {phase!r}", code="engine_error")

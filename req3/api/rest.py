@@ -8,9 +8,11 @@ from __future__ import annotations
 import json
 import re
 import time
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import Response as FastAPIResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..engine.machine import TERMINAL_STATUS_VALUES, JobStatus
@@ -356,6 +358,66 @@ async def submit_answers(
         return job_status_body(updated)
 
     raise ApiError(409, "invalid_state", f"unknown gate {rec.gate!r}")
+
+
+@router.get("/jobs/{job_id}/artifacts")
+async def list_artifacts(
+    job_id: str, request: Request, version: int | None = None
+) -> dict[str, Any]:
+    """Manifest + file list of rendered artifacts (?version=N)."""
+    rec = await _get_job_or_404(request, job_id)
+    versions = json.loads(rec.versions or "{}")
+    spec_version = version or versions.get("spec", 0)
+    out_dir = Path(request.app.state.workspace_root) / job_id / "out" / f"v{spec_version}"
+    if not out_dir.is_dir():
+        raise ApiError(404, "not_found", f"no artifacts for version {spec_version}")
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
+    files = sorted(
+        str(p.relative_to(out_dir)) for p in out_dir.rglob("*") if p.is_file()
+    )
+    return {"job_id": job_id, "version": spec_version, "manifest": manifest, "files": files}
+
+
+@router.get("/jobs/{job_id}/artifacts/{path:path}")
+async def get_artifact(
+    job_id: str, path: str, request: Request, version: int | None = None
+) -> FastAPIResponse:
+    """One rendered artifact file (?version=N)."""
+    await _get_job_or_404(request, job_id)
+    versions = json.loads((await request.app.state.db.get_job(job_id)).versions or "{}")
+    spec_version = version or versions.get("spec", 0)
+    out_dir = (Path(request.app.state.workspace_root) / job_id / "out" / f"v{spec_version}").resolve()
+    target = (out_dir / path).resolve()
+    if not str(target).startswith(str(out_dir)) or not target.is_file():
+        raise ApiError(404, "not_found", f"no artifact: {path}")
+    media = "application/json" if target.suffix == ".json" else "text/markdown"
+    return FastAPIResponse(content=target.read_bytes(), media_type=media)
+
+
+@router.get("/jobs/{job_id}/artifacts.zip")
+async def get_artifacts_zip(
+    job_id: str, request: Request, version: int | None = None
+) -> FastAPIResponse:
+    """Bundle all rendered artifacts of a version."""
+    import io
+    import zipfile
+
+    await _get_job_or_404(request, job_id)
+    versions = json.loads((await request.app.state.db.get_job(job_id)).versions or "{}")
+    spec_version = version or versions.get("spec", 0)
+    out_dir = Path(request.app.state.workspace_root) / job_id / "out" / f"v{spec_version}"
+    if not out_dir.is_dir():
+        raise ApiError(404, "not_found", f"no artifacts for version {spec_version}")
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as bundle:
+        for file in sorted(p for p in out_dir.rglob("*") if p.is_file()):
+            bundle.write(file, arcname=str(file.relative_to(out_dir)))
+    return FastAPIResponse(
+        content=buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{job_id}-v{spec_version}.zip"'},
+    )
 
 
 @router.get("/openapi.json", include_in_schema=False)

@@ -16,6 +16,7 @@ from tests.fakes import (
     design_reply,
     finding,
     make_doc,
+    make_spec,
     review_full,
     review_verify,
 )
@@ -253,10 +254,15 @@ def test_change_request_loops_back_to_req_design(tmp_path):
         assert "change_request" in _events(client, job_id)
 
 
-def test_confirm_leads_to_spec_design_stub_failure(tmp_path):
-    """M4: spec phases land in M5; confirming fails honestly meanwhile."""
+def test_confirm_proceeds_into_spec_phase(tmp_path):
+    """M5: confirm now continues into the spec phases (no longer a stub)."""
     fake = FakeExecutor(
-        [design_reply(make_doc()), review_full([], verdict="pass")]
+        [
+            design_reply(make_doc()),
+            review_full([], verdict="pass"),
+            {"spec": make_spec(("REQ-001",))},
+            review_full([], verdict="pass"),
+        ]
     )
     app = create_app(_config(tmp_path), executor=fake)
     with TestClient(app) as client:
@@ -266,9 +272,8 @@ def test_confirm_leads_to_spec_design_stub_failure(tmp_path):
             f"/v1/jobs/{job_id}/answers", json={"action": "confirm"}, headers=AUTH
         )
         assert confirmed.status_code == 200
-        failed = _wait_status(client, job_id, {"failed"})
-        assert failed["error"]["code"] == "phase_unavailable"
-        assert failed["error"]["phase"] == "spec_design"
+        done = _wait_status(client, job_id, {"completed", "completed_with_issues", "failed"})
+        assert done["status"] == "completed", done.get("error")
 
 
 # ---- expiry ----------------------------------------------------------------

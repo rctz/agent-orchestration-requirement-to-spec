@@ -1,0 +1,22 @@
+# spec.v1 — fixed review checklist for the spec phase (design §6.5).
+version: 1
+phase: spec
+ids:
+  S-01:
+    title: Traceability complete
+    detail: Every confirmed requirement traces to at least one spec element; no element without a requirement.
+  S-02:
+    title: Interfaces fully specified
+    detail: Every interface has inputs, outputs and error cases defined.
+  S-03:
+    title: Data model consistent
+    detail: The spec data model is consistent with the requirements' entities and formats.
+  S-04:
+    title: Error handling and edge cases
+    detail: Each requirement's acceptance has error handling and edge cases in behaviors or error_handling.
+  S-05:
+    title: No scope creep
+    detail: No spec element exists without a confirming requirement.
+  S-06:
+    title: Tech choices consistent
+    detail: Technology choices are consistent with the repo scan (when present) and the requirements.
