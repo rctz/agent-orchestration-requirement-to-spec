@@ -157,7 +157,7 @@ def test_revise_needs_questions_then_answers(tmp_path):
 
 def test_revise_rejects_non_completed(tmp_path):
     fake = FakeExecutor(list(BASE_RUN))
-    client, job_id = _completed_client(tmp_path, fake)
+    client, _completed_id = _completed_client(tmp_path, fake)
     # make a new job that is queued, not completed
     other = client.post("/v1/jobs", json={"prompt": "x"}, headers=AUTH).json()["job_id"]
     resp = client.post(f"/v1/jobs/{other}/revise", json={"text": "change"}, headers=AUTH)
