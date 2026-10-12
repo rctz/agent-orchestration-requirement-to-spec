@@ -1,0 +1,33 @@
+# roles.yaml — backend-neutral role definitions (stub in M0, filled in M2).
+# Source of truth for role -> model tier, permissions, skills, tools
+# (design §2.1, §6.1). scripts/gen_opencode_config.py turns this into
+# opencode/opencode.json (GENERATED — do not hand-edit).
+# Logical roles map to opencode agents; another backend maps them its own way.
+model_tiers:                   # resolved against config.yaml `models`
+  design: glm-5.3-flash
+  review: glm-5.3
+roles:
+  repo-scanner:
+    model_tier: design
+    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> scan-worker
+    skills: []
+  req-designer:
+    model_tier: design
+    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    skills: []
+  req-reviewer:
+    model_tier: review
+    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    skills: []
+  spec-designer:
+    model_tier: design
+    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> spec-worker (L size only)
+    skills: []
+  spec-reviewer:
+    model_tier: review
+    tools: {bash: deny, edit: deny, webfetch: deny, task: allow}   # task -> review-lens (round 1 only)
+    skills: []
+  revise-analyst:
+    model_tier: review
+    tools: {bash: deny, edit: deny, webfetch: deny, task: deny}
+    skills: []

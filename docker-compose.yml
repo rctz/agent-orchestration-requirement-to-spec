@@ -1,0 +1,29 @@
+# req3 — docker compose (skeleton in M0).
+# Minimal gateway+opencode stack first used in M4; hardened in M9
+# (healthchecks, memory limits, host repo dir mount for repo_allowed_roots).
+# Design §13, plan §1.
+name: req3
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/gateway.Dockerfile   # arrives M2/M9
+    ports:
+      - "7790:7790"        # published; ufw rule needs owner approval (M9)
+    env_file: .env
+    volumes:
+      - req3-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # LiteLLM via host 127.0.0.1:4000 (plan §1)
+    restart: unless-stopped
+  opencode:
+    build:
+      context: .
+      dockerfile: docker/opencode.Dockerfile  # arrives M2 (node:22-slim + opencode-ai@1.19.0)
+    # internal only — port 4096 is never published (design §11)
+    env_file: .env
+    volumes:
+      - req3-data:/data
+    restart: unless-stopped
+volumes:
+  req3-data:

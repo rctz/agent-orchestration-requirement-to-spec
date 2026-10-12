@@ -1,0 +1,41 @@
+[project]
+name = "req3"
+version = "0.1.0"
+description = "req3 — plug-and-play Requirement & Spec service (gateway)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    # pinned to the set first resolved on .184 (Python 3.13.5) at M0
+    "fastapi==0.133.1",
+    "uvicorn==0.41.0",
+    "httpx==0.28.1",
+    "jsonschema==4.26.0",
+    "Jinja2==3.1.6",
+    "aiosqlite==0.22.1",
+    "pydantic==2.13.4",
+    "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.17.0",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["req3*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: tests that call the real opencode/LLM stack (opt-in: -m live)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"

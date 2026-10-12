@@ -1,0 +1,34 @@
+# req3 gateway configuration (example).
+# Values from design doc §13 (~/kaizen/design/req3-design.md);
+# model names from implementation plan §1.
+# Secrets live in .env only (never here): REQ3_API_KEY, REQ3_WEBHOOK_SECRET,
+# LITELLM_BASE_URL, LITELLM_API_KEY, OPENCODE_SERVER_PASSWORD.
+
+listen: 0.0.0.0:7790
+max_concurrent_jobs: 5
+step_timeout_s: 900
+step_retries: 2
+question_ttl_s: 86400
+max_question_rounds: 5
+
+review_caps:                   # design §4 rule 6 (never extended automatically)
+  requirements: 2
+  spec: 2
+  spec_p0_extra: 1
+
+size_budgets:                  # design §4 rule 5
+  S: {reqs: 12, components: 4, spec_kb: 40}
+  M: {reqs: 30, components: 10, spec_kb: 120}
+  L: {reqs: 60, components: 25, spec_kb: 300}
+
+models:                        # logical tiers -> LiteLLM model names (design §6.1)
+  design: glm-5.3-flash
+  review: glm-5.3
+
+opencode_url: http://opencode:4096
+data_dir: /data
+
+repo:                          # design §10 "Repo option"
+  allowed_roots: []            # host dirs mounted into the container, e.g. [/home/pi/repos]
+  path_mode: snapshot          # snapshot | readonly_mount
+  max_mb: 200
