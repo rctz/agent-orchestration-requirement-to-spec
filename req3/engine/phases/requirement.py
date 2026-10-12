@@ -153,6 +153,14 @@ def _build_design_prompt(ctx: JobContext) -> tuple[str, dict[str, Any] | None]:
         return "\n".join(parts), prior
     parts.append(_design_instructions(lang))
     parts.append(f"USER PROMPT (verbatim):\n---\n{ctx.job.prompt}\n---")
+    if ctx.state.get("repo_summary"):
+        parts.append(
+            "The user attached an EXISTING CODEBASE. Its scanned summary "
+            "(stack, modules, conventions, interfaces, constraints) follows. "
+            "New requirements MUST fit this codebase — cite the modules you "
+            "would touch:\n"
+            + json.dumps(ctx.state["repo_summary"], ensure_ascii=False, indent=2)
+        )
     if ctx.state.get("change_request"):
         parts.append(
             "The user requested a change after seeing a previous version:\n"

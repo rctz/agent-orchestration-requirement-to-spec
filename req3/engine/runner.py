@@ -248,11 +248,23 @@ class JobRunner:
         raise PhaseError(f"unknown phase {phase!r}", code="engine_error")
 
     async def _repo_resolve(self, ctx: JobContext):
-        """Design §10 / §2A.5 — full resolution lands in M7."""
+        """Design §10 / §2A.5 — local_path repos scan; git_url is refused."""
         if ctx.job.repo:
-            raise PhaseError(
-                "the repo option is implemented in M7 (design D12)",
-                code="phase_unavailable",
-            )
+            repo = json.loads(ctx.job.repo)
+            if repo.get("git_url"):
+                raise PhaseError(
+                    "git_url repos are not supported yet (local path only for now)",
+                    code="phase_unavailable",
+                )
+            # validate early so failures surface as job_failed, not later
+            from .phases.repo import resolve_repo_root
+
+            resolve_repo_root(repo.get("path", ""), ctx.config.repo.allowed_roots)
+            await ctx.save(phase="repo_scan", status="running")
+            await ctx.event("repo_resolved", {"repo": repo, "scan": True})
+            from .phases.repo import repo_scan
+
+            return await repo_scan(ctx)
         await ctx.event("repo_resolved", {"repo": None, "note": "no repo in request"})
         return ("continue", "req_design")
+

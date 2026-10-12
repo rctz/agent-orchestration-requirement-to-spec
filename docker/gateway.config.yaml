@@ -10,3 +10,5 @@ executor: opencode
 opencode_url: http://opencode:4096
 data_dir: /data
 roles_path: /app/roles.yaml
+repo:
+  allowed_roots: ["/repos"]

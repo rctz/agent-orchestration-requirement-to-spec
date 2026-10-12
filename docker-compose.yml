@@ -14,6 +14,7 @@ services:
       REQ3_CONFIG: /app/config.yaml
     volumes:
       - req3-data:/data
+      - /home/pi/req3-data/repos:/repos:ro
     depends_on:
       - opencode
     restart: unless-stopped
