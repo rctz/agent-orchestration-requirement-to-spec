@@ -235,6 +235,10 @@ class JobRunner:
             from .phases import spec
 
             return await spec.spec_review(ctx)
+        if phase == "revise_analyze":
+            from .phases import revise
+
+            return await revise.revise_analyze(ctx)
         if phase in ("render", "publish"):
             # rendering happens inside spec_review completion; publish is M9+
             raise PhaseError(

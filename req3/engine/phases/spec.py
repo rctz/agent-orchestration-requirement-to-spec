@@ -56,7 +56,20 @@ async def spec_design(ctx: JobContext):
     size = requirements.get("size", "S")
     mode = ctx.state.get("spec_mode", "design")
     parts: list[str] = []
-    if mode == "fix":
+    if mode == "revise":
+        change = ctx.state.get("spec_change", "")
+        parts.append(
+            "The user requested a POST-COMPLETION change. Produce the NEXT spec "
+            "version implementing it. Requirements stay AUTHORITATIVE — the "
+            "change must not contradict them; if it does, say so via the spec "
+            "known_issues instead of breaking traceability.\n\n"
+            f"CHANGE REQUEST (verbatim):\n---\n{change}\n---\n\n"
+            f"Prior spec:\n{json.dumps(_current_spec(ctx), ensure_ascii=False, indent=2)}\n\n"
+            f"CONFIRMED REQUIREMENTS:\n"
+            f"{json.dumps(requirements, ensure_ascii=False, indent=2)}"
+        )
+        prompt = "\n\n".join(parts)
+    elif mode == "fix":
         findings = ctx.state.get("spec_findings", [])
         targets = sorted(collect_target_ids(findings))
         parts.append(

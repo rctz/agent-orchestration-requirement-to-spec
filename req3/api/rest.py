@@ -72,6 +72,14 @@ class CreateJobRequest(BaseModel):
     options: JobOptions | None = None
 
 
+class ReviseRequest(BaseModel):
+    """POST /v1/jobs/{id}/revise (design §3, D8; plan M6)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+
+
 class AnswerRequest(BaseModel):
     """POST /v1/jobs/{id}/answers (design §9)."""
 
@@ -252,6 +260,44 @@ async def cancel_job(job_id: str, request: Request) -> dict[str, Any]:
     await request.app.state.db.append_event(
         job_id, "job_cancelled", {"from": rec.status}
     )
+    updated = await _get_job_or_404(request, job_id)
+    return job_status_body(updated)
+
+
+@router.post("/jobs/{job_id}/revise")
+async def request_revise(
+    job_id: str, body: ReviseRequest, request: Request
+) -> dict[str, Any]:
+    """Post-completion change request (design §3, D8; plan M6)."""
+    db = request.app.state.db
+    rec = await _get_job_or_404(request, job_id)
+    if rec.status not in ("completed", "completed_with_issues"):
+        raise ApiError(
+            409, "invalid_state", f"revise requires a completed job (got {rec.status!r})"
+        )
+    text = (body.text or "").strip()
+    if not text:
+        raise ApiError(422, "invalid_request", "text is required")
+    engine = getattr(request.app.state, "engine", None)
+    if engine is None:
+        raise ApiError(503, "engine_unavailable", "engine is not active")
+    state: dict[str, Any] = json.loads(rec.engine_state or "{}")
+    state["change_request"] = text
+    state["revise_count"] = state.get("revise_count", 0) + 1
+    await db.update_job(
+        job_id,
+        status="running",
+        phase="revise_analyze",
+        gate=None,
+        questions="[]",
+        questions_expire_at=None,
+        error=None,
+        engine_state=json.dumps(state, ensure_ascii=False),
+    )
+    await db.append_event(
+        job_id, "revise_requested", {"text": text[:300], "n": state["revise_count"]}
+    )
+    engine.submit(job_id)
     updated = await _get_job_or_404(request, job_id)
     return job_status_body(updated)
 
