@@ -1,12 +1,12 @@
-"""REST API v1 (design §9): jobs lifecycle surface for M1.
+"""REST API v1 (design §9): jobs lifecycle surface.
 
-M1 scope: create (queued only — no engine yet), get, list, cancel,
-OpenAPI document. Answers/revise/events/artifacts routes land with the
-engine milestones (M4+).
+M4: create (auto-submitted to the engine when active), get, list, cancel,
+answers (questions gate + confirm gate), OpenAPI document.
 """
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Any, Literal
 
@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..engine.machine import TERMINAL_STATUS_VALUES, JobStatus
+from ..engine.phases.requirement import record_gate_decisions
 from ..store.db import (
     IntegrityError,
     JobRecord,
@@ -67,6 +68,24 @@ class CreateJobRequest(BaseModel):
     repo: RepoSpec | None = None
     callback_url: str | None = Field(default=None, pattern=r"^https?://")
     options: JobOptions | None = None
+
+
+class AnswerRequest(BaseModel):
+    """POST /v1/jobs/{id}/answers (design §9)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    answers: dict[str, str] | None = None  # gate=questions: {Q-01: "..."}
+    apply_defaults: bool = False  # apply default_answer to unanswered now
+    action: Literal["confirm", "change_request"] | None = None
+    text: str | None = None  # required with action=change_request
+
+
+_THAI_SCRIPT = re.compile(r"[\u0e00-\u0e7f]")
+
+
+def detect_language(prompt: str) -> str:
+    return "th" if _THAI_SCRIPT.search(prompt) else "en"
 
 
 # ---- response helpers -----------------------------------------------------
@@ -152,6 +171,8 @@ async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]
         if existing is not None:
             return created_body(existing)  # idempotent replay
     options = body.options.model_dump(exclude_none=True) if body.options else None
+    options = dict(options or {})
+    options.setdefault("user_language", detect_language(body.prompt))
     repo = body.repo.model_dump(exclude_none=True) if body.repo else None
     profile = (
         body.output_profile
@@ -189,6 +210,9 @@ async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]
     await db.append_event(
         rec.job_id, "job_created", {"status": "queued", "idempotent": bool(idem)}
     )
+    engine = getattr(request.app.state, "engine", None)
+    if engine is not None:
+        engine.submit(rec.job_id)
     return created_body(rec)
 
 
@@ -228,6 +252,110 @@ async def cancel_job(job_id: str, request: Request) -> dict[str, Any]:
     )
     updated = await _get_job_or_404(request, job_id)
     return job_status_body(updated)
+
+
+@router.post("/jobs/{job_id}/answers")
+async def submit_answers(
+    job_id: str, body: AnswerRequest, request: Request
+) -> dict[str, Any]:
+    """Answer questions / confirm / request changes (design §9)."""
+    db = request.app.state.db
+    rec = await _get_job_or_404(request, job_id)
+    if rec.status != "input_required":
+        raise ApiError(
+            409, "invalid_state", f"job is {rec.status!r}, not input_required"
+        )
+    engine = getattr(request.app.state, "engine", None)
+    if engine is None:
+        raise ApiError(503, "engine_unavailable", "engine is not active")
+
+    if rec.gate == "questions":
+        questions = json.loads(rec.questions or "[]")
+        state: dict[str, Any] = json.loads(rec.engine_state or "{}")
+        answers = body.answers or {}
+        valid_ids = {q["id"] for q in questions if "id" in q}
+        unknown = sorted(set(answers) - valid_ids)
+        if unknown:
+            raise ApiError(422, "invalid_request", f"unknown question ids: {unknown}")
+        if not answers and not body.apply_defaults:
+            raise ApiError(422, "invalid_request", "no answers supplied")
+        state.setdefault("answers", {}).update(answers)
+        answered: dict[str, str] = state["answers"]
+        all_answered = all(q["id"] in answered for q in questions)
+        if not (body.apply_defaults or all_answered):
+            # partial answers: record and keep waiting (design §5)
+            await db.update_job(
+                job_id, engine_state=json.dumps(state, ensure_ascii=False)
+            )
+            await db.append_event(
+                job_id, "questions_answered", {"answers": sorted(answers)}
+            )
+            updated = await _get_job_or_404(request, job_id)
+            return job_status_body(updated)
+        unanswered = [q for q in questions if q["id"] not in answered]
+        workspace = Workspace(request.app.state.workspace_root, job_id)
+        entries = record_gate_decisions(workspace.root, answered, unanswered)
+        state.setdefault("decision_log", []).extend(entries)
+        await db.update_job(
+            job_id,
+            status="running",
+            phase="req_design",
+            gate=None,
+            questions="[]",
+            questions_expire_at=None,
+            engine_state=json.dumps(state, ensure_ascii=False),
+        )
+        await db.append_event(
+            job_id,
+            "questions_answered",
+            {
+                "answers": sorted(answers),
+                "defaults_applied": [q["id"] for q in unanswered],
+            },
+        )
+        engine.submit(job_id)
+        updated = await _get_job_or_404(request, job_id)
+        return job_status_body(updated)
+
+    if rec.gate == "confirm_requirements":
+        if body.action == "confirm":
+            await db.update_job(
+                job_id,
+                status="running",
+                phase="spec_design",
+                gate=None,
+                questions_expire_at=None,
+            )
+            await db.append_event(job_id, "requirements_confirmed", {})
+            engine.submit(job_id)
+        elif body.action == "change_request":
+            if not body.text:
+                raise ApiError(422, "invalid_request", "change_request requires text")
+            state = json.loads(rec.engine_state or "{}")
+            state["change_request"] = body.text
+            state["req_mode"] = "design"
+            await db.update_job(
+                job_id,
+                status="running",
+                phase="req_design",
+                gate=None,
+                questions_expire_at=None,
+                engine_state=json.dumps(state, ensure_ascii=False),
+            )
+            await db.append_event(
+                job_id, "change_request", {"text": body.text[:200]}
+            )
+            engine.submit(job_id)
+        else:
+            raise ApiError(
+                422,
+                "invalid_request",
+                "confirm gate expects {action: confirm|change_request}",
+            )
+        updated = await _get_job_or_404(request, job_id)
+        return job_status_body(updated)
+
+    raise ApiError(409, "invalid_state", f"unknown gate {rec.gate!r}")
 
 
 @router.get("/openapi.json", include_in_schema=False)

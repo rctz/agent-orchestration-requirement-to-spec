@@ -1,7 +1,10 @@
-"""Job state machine (design §3).
+"""Job state machine (design §3 + §2A.2).
 
-M1 scope: the closed status/phase enums and terminal-set helpers only.
-The full transition table and its enforcement land in M4.
+M4: the full transition discipline. `TRANSITIONS` mirrors the design §3
+table literally; the engine only ever moves a job through `assert_transition`
+so the closed status enum stays consistent. Global rule (design §2A.2a):
+cancel -> cancelled from any non-terminal state; unrecoverable error after
+retries -> failed.
 """
 from __future__ import annotations
 
@@ -52,3 +55,38 @@ class Phase(str, Enum):
     PUBLISH = "publish"
     DONE = "done"
     REVISE_ANALYZE = "revise_analyze"
+
+
+class TransitionError(Exception):
+    """Raised when a move is not allowed by the design §3 table."""
+
+
+# (from_status, to_status, trigger) — the design §3 table, literally.
+TRANSITIONS: frozenset[tuple[str, str, str]] = frozenset(
+    {
+        ("queued", "running", "worker free"),
+        ("running", "input_required", "questions / confirm gate"),
+        ("input_required", "running", "answers, confirm, change_request, or expiry"),
+        ("running", "completed", "render ok, no issues"),
+        ("running", "completed_with_issues", "render ok, known issues"),
+        ("running", "failed", "error after retries"),
+        ("queued", "cancelled", "cancel"),
+        ("running", "cancelled", "cancel"),
+        ("input_required", "cancelled", "cancel"),
+        ("completed", "running", "revise"),
+        ("completed_with_issues", "running", "revise"),
+    }
+)
+
+
+def assert_transition(source: str, target: str, trigger: str) -> None:
+    if source == target:
+        return  # same-status update (phase steps inside `running`)
+    if source == "cancelled" or (source, target, trigger) not in TRANSITIONS:
+        if source in TERMINAL_STATUS_VALUES and target == "running" and trigger == "revise":
+            return  # completed* -> running via revise (M6)
+        allowed = sorted({(a, b) for a, b, _ in TRANSITIONS if a == source})
+        raise TransitionError(
+            f"illegal transition {source!r} -> {target!r} via {trigger!r} "
+            f"(allowed from {source!r}: {allowed})"
+        )

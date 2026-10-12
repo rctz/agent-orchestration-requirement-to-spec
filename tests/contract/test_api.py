@@ -169,7 +169,7 @@ def test_workspace_input_files_written(client, tmp_path):
     prompt = (job_dir / "input" / "prompt.txt").read_text(encoding="utf-8")
     assert prompt.startswith("Build a Celsius")
     options = json.loads((job_dir / "input" / "options.json").read_text())
-    assert options == {"size": "S"}
+    assert options == {"size": "S", "user_language": "en"}
     profile = json.loads((job_dir / "input" / "profile.json").read_text())
     assert profile == {"name": "default"}
     for sub in ("repo", "context", "canonical", "reviews", "out"):

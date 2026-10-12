@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/req_design_output.schema.json",
+  "title": "req-designer output envelope (design §5, §7): the canonical requirements document plus clarifying questions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requirements"],
+  "properties": {
+    "requirements": {"$ref": "req3/requirements.schema.json"},
+    "questions": {
+      "type": "array",
+      "items": {"$ref": "req3/question.schema.json"},
+      "maxItems": 7
+    }
+  }
+}

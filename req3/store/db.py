@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     versions             TEXT NOT NULL,
     known_issues         TEXT NOT NULL,
     error                TEXT,
+    engine_state         TEXT,
     created_at           TEXT NOT NULL,
     updated_at           TEXT NOT NULL
 );
@@ -64,9 +65,16 @@ _JOB_COLUMNS = (
     "job_id, idempotency_key, project, status, phase, gate, prompt, "
     "output_profile, repo, callback_url, options, \"round\", questions, "
     "questions_expire_at, requirements_preview, versions, known_issues, "
-    "error, created_at, updated_at"
+    "error, engine_state, created_at, updated_at"
 )
-_JOB_PLACEHOLDERS = ", ".join("?" for _ in range(20))
+_JOB_PLACEHOLDERS = ", ".join("?" for _ in range(21))
+_UPDATABLE_COLUMNS = frozenset(
+    {
+        "project", "status", "phase", "gate", "round", "questions",
+        "questions_expire_at", "requirements_preview", "versions",
+        "known_issues", "error", "engine_state", "options", "output_profile",
+    }
+)
 
 
 def utcnow() -> str:
@@ -105,6 +113,7 @@ class JobRecord:
     versions: str = '{"requirements": 0, "spec": 0}'
     known_issues: str = "[]"
     error: str | None = None
+    engine_state: str | None = None
 
 
 class Database:
@@ -125,6 +134,10 @@ class Database:
         await self._db.execute("PRAGMA journal_mode=WAL")
         await self._db.execute("PRAGMA busy_timeout=5000")
         await self._db.executescript(_SCHEMA)
+        try:  # migration for databases created before M4
+            await self._db.execute("ALTER TABLE jobs ADD COLUMN engine_state TEXT")
+        except aiosqlite.OperationalError:
+            pass  # column already present
         await self._db.commit()
 
     async def close(self) -> None:
@@ -140,12 +153,46 @@ class Database:
             rec.gate, rec.prompt, rec.output_profile, rec.repo, rec.callback_url,
             rec.options, rec.round, rec.questions, rec.questions_expire_at,
             rec.requirements_preview, rec.versions, rec.known_issues, rec.error,
-            rec.created_at, rec.updated_at,
+            rec.engine_state, rec.created_at, rec.updated_at,
         )
         await self.conn.execute(
             f"INSERT INTO jobs ({_JOB_COLUMNS}) VALUES ({_JOB_PLACEHOLDERS})", values
         )
         await self.conn.commit()
+
+    async def update_job(self, job_id: str, **fields: Any) -> bool:
+        """Update whitelisted job columns; bumps updated_at."""
+        unknown = set(fields) - _UPDATABLE_COLUMNS
+        if unknown:
+            raise ValueError(f"non-updatable columns: {sorted(unknown)}")
+        if not fields:
+            return True
+        assignments = ", ".join(f'"{name}" = ?' for name in fields)
+        values = (*fields.values(), utcnow(), job_id)
+        cur = await self.conn.execute(
+            f"UPDATE jobs SET {assignments}, updated_at = ? WHERE job_id = ?", values
+        )
+        await self.conn.commit()
+        return cur.rowcount > 0
+
+    async def jobs_with_status(self, status: str) -> list[JobRecord]:
+        cur = await self.conn.execute(
+            f"SELECT {_JOB_COLUMNS} FROM jobs WHERE status = ? ORDER BY created_at",
+            (status,),
+        )
+        rows = await cur.fetchall()
+        return [JobRecord(**dict(r)) for r in rows]
+
+    async def expired_gate_jobs(self, cutoff: str) -> list[JobRecord]:
+        """input_required jobs whose questions_expire_at has passed."""
+        cur = await self.conn.execute(
+            f"SELECT {_JOB_COLUMNS} FROM jobs "
+            "WHERE status = 'input_required' AND questions_expire_at IS NOT NULL "
+            "AND questions_expire_at <= ? ORDER BY questions_expire_at",
+            (cutoff,),
+        )
+        rows = await cur.fetchall()
+        return [JobRecord(**dict(r)) for r in rows]
 
     async def get_job(self, job_id: str) -> JobRecord | None:
         cur = await self.conn.execute(

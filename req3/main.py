@@ -1,6 +1,7 @@
 """Application factory + entrypoint (`python -m req3.main`)."""
 from __future__ import annotations
 
+import asyncio
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -15,13 +16,16 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import req3
 
 from .api import rest
+from .api import sse as sse_api
 from .api.errors import ApiError, error_body
 from .config import Config, load_roles, roles_requirements
-from .executor.base import get_executor
+from .engine.expiry import expiry_loop
+from .engine.queue import Engine
+from .executor.base import Executor, get_executor
 from .store.db import Database
 
 
-def create_app(config: Config | None = None) -> FastAPI:
+def create_app(config: Config | None = None, *, executor: Executor | None = None) -> FastAPI:
     config = config or Config.load()
     roles = load_roles(config.roles_path)
     if config.executor == "opencode" and not roles.get("roles"):
@@ -31,6 +35,7 @@ def create_app(config: Config | None = None) -> FastAPI:
             "(design §10 startup self-check)"
         )
     required_agents, required_models = roles_requirements(roles)
+    engine_enabled = executor is not None or config.executor == "opencode"
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -38,17 +43,38 @@ def create_app(config: Config | None = None) -> FastAPI:
         await db.open()
         app.state.db = db
         app.state.workspace_root = Path(config.data_dir) / "jobs"
-        app.state.executor = get_executor(config, required_agents, required_models)
+        app.state.executor = executor or get_executor(config, required_agents, required_models)
         app.state.health_cache = None
+        app.state.engine = (
+            Engine(config, db, app.state.executor, app.state.workspace_root)
+            if engine_enabled
+            else None
+        )
         report = await app.state.executor.health()
         print(
             f"req3 startup self-check: executor={config.executor} "
-            f"ok={report.ok} {report.detail}",
+            f"ok={report.ok} engine={engine_enabled} {report.detail}",
             file=sys.stderr,
         )
+        expiry_task = None
         try:
+            if app.state.engine is not None:
+                app.state.engine.start()
+                resumed = await app.state.engine.resume_running_jobs()
+                if resumed:
+                    print(
+                        f"req3: resumed {resumed} running job(s) after restart",
+                        file=sys.stderr,
+                    )
+                expiry_task = asyncio.create_task(
+                    expiry_loop(db, app.state.engine), name="req3-expiry"
+                )
             yield
         finally:
+            if expiry_task is not None:
+                expiry_task.cancel()
+            if app.state.engine is not None:
+                await app.state.engine.stop()
             aclose = getattr(app.state.executor, "aclose", None)
             if aclose is not None:
                 await aclose()
@@ -111,6 +137,7 @@ def create_app(config: Config | None = None) -> FastAPI:
         return JSONResponse(body, status_code=200 if report.ok else 503)
 
     app.include_router(rest.router)
+    app.include_router(sse_api.router)
     return app
 
 

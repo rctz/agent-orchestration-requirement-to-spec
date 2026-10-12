@@ -1,0 +1,24 @@
+# requirements.v1 — fixed review checklist for the requirement phase
+# (design §6.5). Reviewer findings MUST reference these ids; findings with
+# other ids are dropped by code (design §4 rule 1).
+version: 1
+phase: requirements
+ids:
+  R-01:
+    title: Testable acceptance
+    detail: Every requirement has observable, testable acceptance criteria (Given/When/Then style).
+  R-02:
+    title: No contradiction
+    detail: No two requirements contradict each other.
+  R-03:
+    title: Scope explicit
+    detail: In-scope and out-of-scope are explicit and consistent with the goal.
+  R-04:
+    title: Data defined
+    detail: Data entities and formats referenced by requirements are defined.
+  R-05:
+    title: No unresolved ambiguity
+    detail: Nothing an implementer would have to ask about is left ambiguous.
+  R-06:
+    title: Within size budget
+    detail: The requirement set is within the declared size budget (S 12 / M 30 / L 60).

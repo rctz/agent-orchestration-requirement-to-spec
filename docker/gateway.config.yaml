@@ -1,0 +1,12 @@
+# Gateway config baked into the container image (design §13).
+# Secrets come from env (.env via compose env_file), never from this file.
+listen: 0.0.0.0:7790
+max_concurrent_jobs: 5
+step_timeout_s: 900
+step_retries: 2
+question_ttl_s: 86400
+max_question_rounds: 5
+executor: opencode
+opencode_url: http://opencode:4096
+data_dir: /data
+roles_path: /app/roles.yaml
