@@ -1,0 +1,96 @@
+# Requirements — {{ r.project }}
+
+- Project: **{{ r.project }}**
+- Document version: v{{ r.version }}
+- Size class: {{ r.size }}
+- Requirements: {{ r.requirements | length }} total, {{ r.requirements | selectattr('priority', 'equalto', 'must') | list | length }} must
+
+## Goal
+
+{{ r.goal }}
+
+## Users
+
+{% for user in r.users -%}
+- {{ user }}
+{% endfor %}
+## Scope
+
+### In scope
+
+{% for item in r.scope.in -%}
+- {{ item }}
+{% endfor %}
+### Out of scope
+
+{% for item in r.scope.out -%}
+- {{ item }}
+{% endfor %}
+## Requirements
+
+{% for req in r.requirements %}
+### {{ req.id }} — {{ req.title }}
+
+- Kind: {{ req.kind }}
+- Priority: {{ req.priority }}
+{% if req.refs %}- Refs: {{ req.refs | join(", ") }}
+{% endif %}
+{{ req.body }}
+
+Acceptance:
+
+{% for criterion in req.acceptance -%}
+- {{ criterion }}
+{% endfor %}
+{% endfor %}
+## Data
+
+{% for entity in r.get('data', {}).get('entities', []) %}
+### {{ entity.name }}
+
+{% for field in entity.fields -%}
+- `{{ field.name }}` ({{ field.type }}){% if field.rules %} — {{ field.rules }}{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% set formats = r.get('data', {}).get('formats', []) %}
+{% if formats %}
+Formats: {{ formats | join(", ") }}
+
+{% endif %}
+## Assumptions
+
+{% for assumption in r.get('assumptions', []) -%}
+- **{{ assumption.id }}**: {{ assumption.text }}
+{% endfor %}
+{% if not r.get('assumptions') %}
+- None
+
+{% endif %}
+## Decisions
+
+{% for decision in r.get('decisions', []) -%}
+- **{{ decision.id }}**{% if decision.question_id %} ({{ decision.question_id }}){% endif %}: {{ decision.answer }} — _{{ decision.source }}_{% if decision.source == 'system_default_expired' %} (chosen by system: question expired without answer){% endif %}
+
+{% endfor %}
+{% if not r.get('decisions') %}
+- None
+
+{% endif %}
+## Glossary
+
+{% for entry in r.get('glossary', []) -%}
+- **{{ entry.term }}**: {{ entry.definition }}
+{% endfor %}
+{% if not r.get('glossary') %}
+- None
+
+{% endif %}
+## Open items
+
+{% for item in r.get('open_items', []) -%}
+- {{ item }}
+{% endfor %}
+{% if not r.get('open_items') %}
+- None
+{% endif %}

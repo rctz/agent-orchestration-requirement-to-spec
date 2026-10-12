@@ -1,0 +1,8 @@
+{
+  "name": "json",
+  "files": [
+    {"path": "requirements.json", "template": "builtin:requirements.json"},
+    {"path": "spec.json", "template": "builtin:spec.json"}
+  ],
+  "links": {}
+}

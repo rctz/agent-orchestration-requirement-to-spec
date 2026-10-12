@@ -1,0 +1,104 @@
+{
+  "project": "temp-conv",
+  "version": 2,
+  "size": "S",
+  "language_of_user": "en",
+  "goal": "A command-line tool that converts temperatures between Celsius and Fahrenheit.",
+  "users": [
+    "CLI users on POSIX systems"
+  ],
+  "scope": {
+    "in": [
+      "Convert Celsius to Fahrenheit",
+      "Convert Fahrenheit to Celsius",
+      "Single CLI invocation per conversion"
+    ],
+    "out": [
+      "Kelvin support",
+      "Graphical interface",
+      "Batch conversion of files"
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "kind": "functional",
+      "title": "Convert Celsius to Fahrenheit",
+      "body": "Given a Celsius value, the tool prints the equivalent Fahrenheit value rounded to two decimals.",
+      "acceptance": [
+        "Given 0 C when converting then the output is 32.00",
+        "Given 100 C when converting then the output is 212.00"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-002",
+      "kind": "functional",
+      "title": "Convert Fahrenheit to Celsius",
+      "body": "Given a Fahrenheit value, the tool prints the equivalent Celsius value rounded to two decimals.",
+      "acceptance": [
+        "Given 32 F when converting then the output is 0.00",
+        "Given 212 F when converting then the output is 100.00"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-003",
+      "kind": "nonfunctional",
+      "title": "Clear error on invalid input",
+      "body": "When the argument is not a finite number, the tool prints an error message to stderr and exits with a non-zero code.",
+      "acceptance": [
+        "Given the argument 'abc' when running the tool then stderr contains an error and the exit code is 2"
+      ],
+      "priority": "must",
+      "refs": [
+        "D-01"
+      ]
+    }
+  ],
+  "data": {
+    "entities": [
+      {
+        "name": "Conversion",
+        "fields": [
+          {
+            "name": "input_value",
+            "type": "decimal",
+            "rules": "parses as a finite number"
+          },
+          {
+            "name": "direction",
+            "type": "enum c2f|f2c",
+            "rules": "default c2f"
+          }
+        ]
+      }
+    ],
+    "formats": [
+      "<value> [--to f|c]"
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A-01",
+      "text": "Input arrives as a single CLI argument."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "question_id": "Q-01",
+      "answer": "No Kelvin support in v1",
+      "source": "system_default_expired"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "CLI",
+      "definition": "Command-line interface."
+    }
+  ],
+  "open_items": []
+}

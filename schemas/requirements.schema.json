@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/requirements.schema.json",
+  "title": "req3 canonical requirements document (design §7)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "version", "size", "goal", "users", "scope", "requirements"],
+  "properties": {
+    "project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "version": {"type": "integer", "minimum": 1},
+    "size": {"enum": ["S", "M", "L"]},
+    "language_of_user": {"type": "string", "minLength": 2},
+    "goal": {"type": "string", "minLength": 1},
+    "users": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["in", "out"],
+      "properties": {
+        "in": {"type": "array", "items": {"type": "string"}},
+        "out": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "title", "body", "acceptance", "priority"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^REQ-\\d{3}$"},
+          "kind": {"enum": ["functional", "nonfunctional"]},
+          "title": {"type": "string", "minLength": 1},
+          "body": {"type": "string", "minLength": 1},
+          "acceptance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "priority": {"enum": ["must", "should", "could"]},
+          "refs": {"type": "array", "items": {"type": "string", "pattern": "^[AD]-\\d{2}$"}}
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "fields"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "type"],
+                  "properties": {
+                    "name": {"type": "string", "minLength": 1},
+                    "type": {"type": "string", "minLength": 1},
+                    "rules": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "formats": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^A-\\d{2}$"},
+          "text": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "answer", "source"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^D-\\d{2}$"},
+          "question_id": {"type": "string", "pattern": "^Q-\\d{2}$"},
+          "answer": {"type": "string", "minLength": 1},
+          "source": {"enum": ["user", "system_default_expired", "agent_assumption"]}
+        }
+      }
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["term", "definition"],
+        "properties": {
+          "term": {"type": "string", "minLength": 1},
+          "definition": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "open_items": {"type": "array", "items": {"type": "string"}}
+  }
+}

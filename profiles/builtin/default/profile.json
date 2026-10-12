@@ -1,0 +1,8 @@
+{
+  "name": "default",
+  "files": [
+    {"path": "requirement.md", "template": "builtin:requirement.md.j2"},
+    {"path": "spec.md", "template": "builtin:spec.md.j2"}
+  ],
+  "links": {"traceability": {"enabled": true, "in": "spec.md"}}
+}

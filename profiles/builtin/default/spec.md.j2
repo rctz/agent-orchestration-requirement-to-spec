@@ -1,0 +1,150 @@
+# Design Spec — {{ s.project }}
+
+- Project: **{{ s.project }}**
+- Spec version: v{{ s.version }} (based on requirements v{{ s.requirements_version }})
+- Components: {{ s.architecture.components | length }}
+
+## Overview
+
+{{ s.overview }}
+
+## Architecture
+
+{{ s.architecture.summary }}
+
+| Component | Responsibility | Satisfies |
+|---|---|---|
+{% for component in s.architecture.components -%}
+| {{ component.id }} — {{ component.name }} | {{ component.responsibility }} | {{ component.satisfies | join(", ") }} |
+{% endfor %}
+## Interfaces
+
+{% for interface in s.get('interfaces', []) %}
+### {{ interface.id }} — {{ interface.kind }} on {{ interface.component }}
+
+```
+{{ interface.signature }}
+```
+{% if interface.inputs %}
+Inputs:
+
+{% for item in interface.inputs -%}
+- {{ item }}
+{% endfor %}
+{% endif %}
+{% if interface.outputs %}
+Outputs:
+
+{% for item in interface.outputs -%}
+- {{ item }}
+{% endfor %}
+{% endif %}
+{% if interface.errors %}
+Errors:
+
+{% for item in interface.errors -%}
+- {{ item }}
+{% endfor %}
+{% endif %}
+Satisfies: {{ interface.satisfies | join(", ") }}
+
+{% endfor %}
+## Data model
+
+{% for entity in s.get('data_model', []) -%}
+- {{ entity | tojson }}
+{% endfor %}
+{% if not s.get('data_model') %}
+- (no additional data model entries)
+
+{% endif %}
+## Behaviors
+
+{% for behavior in s.get('behaviors', []) %}
+### {{ behavior.id }} — {{ behavior.req }}
+
+{% for step in behavior.steps -%}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+{% if behavior.edge_cases %}
+Edge cases:
+
+{% for case in behavior.edge_cases -%}
+- {{ case }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+## Error handling
+
+{% for item in s.get('error_handling', []) -%}
+- {{ item | tojson }}
+{% endfor %}
+{% if not s.get('error_handling') %}
+- (none specified)
+
+{% endif %}
+## Non-functional requirements
+
+{% for item in s.get('nfr', []) -%}
+- {{ item | tojson }}
+{% endfor %}
+{% if not s.get('nfr') %}
+- (none specified)
+
+{% endif %}
+## Test plan
+
+| Test | Verifies | Case |
+|---|---|---|
+{% for test in s.get('test_plan', []) -%}
+| {{ test.id }} | {{ test.verifies | join(", ") }} | {{ test.case }} |
+{% endfor %}
+## Technology choices
+
+{% for choice in s.get('tech_choices', []) -%}
+- **{{ choice.choice }}** — {{ choice.rationale }}
+{% endfor %}
+{% if not s.get('tech_choices') %}
+- (none specified)
+
+{% endif %}
+## Known issues
+
+{% for issue in s.get('known_issues', []) -%}
+- {{ issue }}
+{% endfor %}
+{% if not s.get('known_issues') %}
+- None
+
+{% endif %}
+{% if s.get('extensions') %}
+## Extensions
+
+{% for key, value in s.extensions.items() %}
+### {{ key }}
+
+```json
+{{ value | tojson(indent=2) }}
+```
+
+{% endfor %}
+{% endif %}
+## Traceability
+
+{% if trace %}
+| Requirement | Spec elements |
+|---|---|
+{% for row in trace.matrix -%}
+| {{ row.requirement }} | {{ row.elements | join(", ") }} |
+{% endfor %}
+{% if trace.uncovered_requirements %}
+Uncovered requirements: {{ trace.uncovered_requirements | join(", ") }}
+
+{% endif %}
+{% if trace.orphan_elements %}
+Orphan elements (no valid requirement): {{ trace.orphan_elements | join(", ") }}
+
+{% endif %}
+{% else %}
+Traceability links are not enabled for this profile.
+{% endif %}

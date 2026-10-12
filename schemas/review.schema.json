@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/review.schema.json",
+  "title": "req3 review result (design §7). Round 1 = full, round >= 2 = verify-only: new findings are rejected by schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["round", "mode", "verdict"],
+  "properties": {
+    "round": {"type": "integer", "minimum": 1},
+    "mode": {"enum": ["full", "verify"]},
+    "verdict": {"enum": ["pass", "fix"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "checklist_id", "severity", "target_ids", "problem", "required_change"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^F-\\d{2}$"},
+          "checklist_id": {"type": "string", "pattern": "^[RS]-\\d{2}$"},
+          "severity": {"enum": ["P0", "P1", "P2"]},
+          "target_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "problem": {"type": "string", "minLength": 1},
+          "required_change": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "resolutions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "status"],
+        "properties": {
+          "finding_id": {"type": "string", "pattern": "^F-\\d{2}$"},
+          "status": {"enum": ["resolved", "not_resolved"]},
+          "note": {"type": "string"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"const": "verify"}}},
+      "then": {
+        "required": ["resolutions"],
+        "properties": {
+          "findings": {"maxItems": 0},
+          "resolutions": {"minItems": 1}
+        }
+      }
+    }
+  ]
+}

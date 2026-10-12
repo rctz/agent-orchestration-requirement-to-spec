@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/repo_summary.schema.json",
+  "title": "req3 repo scan summary (design §10) — bounded context for designers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["stack", "modules", "conventions", "existing_interfaces", "constraints"],
+  "properties": {
+    "stack": {"type": "array", "items": {"type": "string"}},
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "purpose"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "key_exports": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "conventions": {"type": "array", "items": {"type": "string"}},
+    "existing_interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "summary": {"type": "string"}
+        }
+      }
+    },
+    "constraints": {"type": "array", "items": {"type": "string"}}
+  }
+}

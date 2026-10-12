@@ -1,0 +1,141 @@
+{
+  "project": "shopping-cart",
+  "version": 3,
+  "size": "M",
+  "language_of_user": "en",
+  "goal": "A REST shopping-cart service: add items, update quantities, remove items and check out with a persisted order.",
+  "users": ["Shoppers via a web frontend", "Operators reading orders"],
+  "scope": {
+    "in": [
+      "Cart item add/update/remove",
+      "Cart total calculation",
+      "Checkout that creates an order",
+      "Product catalogue is read-only input"
+    ],
+    "out": [
+      "Payment processing",
+      "User accounts and authentication",
+      "Product catalogue management"
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "kind": "functional",
+      "title": "Add item to cart",
+      "body": "A shopper can add a product to their cart with a positive quantity; adding an existing product increases its quantity.",
+      "acceptance": [
+        "Given an empty cart when adding product P1 qty 2 then the cart contains P1 with quantity 2",
+        "Given a cart with P1 qty 2 when adding P1 qty 1 then the cart contains P1 with quantity 3"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-002",
+      "kind": "functional",
+      "title": "Update item quantity",
+      "body": "A shopper can set a cart item's quantity to any value >= 1; setting 0 removes the item.",
+      "acceptance": [
+        "Given a cart with P1 qty 2 when setting qty 5 then the cart shows P1 qty 5",
+        "Given a cart with P1 qty 2 when setting qty 0 then the cart no longer contains P1"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-003",
+      "kind": "functional",
+      "title": "Cart total",
+      "body": "The cart exposes a total: the sum of unit price times quantity over all items, before tax.",
+      "acceptance": [
+        "Given P1 (10.00) qty 2 and P2 (5.50) qty 1 when requesting the total then the total is 25.50"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-004",
+      "kind": "functional",
+      "title": "Checkout creates an order",
+      "body": "Checkout converts the cart into a persisted order with a unique id, the items, the total and a timestamp, then empties the cart.",
+      "acceptance": [
+        "Given a cart with items when checking out then an order exists with those items and the cart is empty"
+      ],
+      "priority": "must",
+      "refs": ["D-02"]
+    },
+    {
+      "id": "REQ-005",
+      "kind": "functional",
+      "title": "Unknown product rejected",
+      "body": "Adding a product id that is not in the catalogue fails with a 404 and does not change the cart.",
+      "acceptance": [
+        "Given product PX not in catalogue when adding PX then the API returns 404 and the cart is unchanged"
+      ],
+      "priority": "must",
+      "refs": []
+    },
+    {
+      "id": "REQ-006",
+      "kind": "nonfunctional",
+      "title": "Cart response time",
+      "body": "Cart read and write operations respond within 200 ms at 50 concurrent shoppers.",
+      "acceptance": [
+        "Given 50 concurrent shoppers when measuring cart operations then p95 latency is under 200 ms"
+      ],
+      "priority": "should",
+      "refs": []
+    }
+  ],
+  "data": {
+    "entities": [
+      {
+        "name": "Cart",
+        "fields": [
+          {"name": "id", "type": "uuid", "rules": "assigned at first add"},
+          {"name": "items", "type": "list of CartItem", "rules": "at most 100 distinct products"}
+        ]
+      },
+      {
+        "name": "CartItem",
+        "fields": [
+          {"name": "product_id", "type": "string", "rules": "must exist in catalogue"},
+          {"name": "quantity", "type": "integer", "rules": ">= 1 while in cart"}
+        ]
+      },
+      {
+        "name": "Order",
+        "fields": [
+          {"name": "id", "type": "uuid", "rules": "unique"},
+          {"name": "items", "type": "list of CartItem", "rules": "snapshot at checkout"},
+          {"name": "total", "type": "decimal(2)", "rules": "equals cart total at checkout"}
+        ]
+      }
+    ],
+    "formats": ["money values are decimal(2) strings"]
+  },
+  "assumptions": [
+    {"id": "A-01", "text": "Prices come from the product catalogue; the cart never stores prices."},
+    {"id": "A-02", "text": "One cart per shopper session, identified by a cart token header."}
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "question_id": "Q-01",
+      "answer": "No payment processing in v1",
+      "source": "user"
+    },
+    {
+      "id": "D-02",
+      "question_id": "Q-02",
+      "answer": "Checkout empties the cart immediately",
+      "source": "system_default_expired"
+    }
+  ],
+  "glossary": [
+    {"term": "Catalogue", "definition": "The read-only product master data."},
+    {"term": "Cart token", "definition": "Opaque header value identifying one cart."}
+  ],
+  "open_items": []
+}

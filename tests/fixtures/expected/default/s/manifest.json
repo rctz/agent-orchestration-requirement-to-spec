@@ -1,0 +1,41 @@
+{
+  "schema": "req3-manifest/1",
+  "job_id": "j_fixture0001",
+  "project": "temp-conv",
+  "status": "completed",
+  "versions": {
+    "requirements": 2,
+    "spec": 1
+  },
+  "profile": "default",
+  "repo": null,
+  "files": [
+    {
+      "path": "requirement.md",
+      "bytes": 1880,
+      "sha256": "55e1bc1199e77f1d33a389decad5b376e1df4dcd0feb289d34a9576786c77a71"
+    },
+    {
+      "path": "spec.md",
+      "bytes": 2666,
+      "sha256": "e8b97f86be094406efee5fdd4fce183062de84f4c594a9bace877a6300606b1f"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "question_id": "Q-01",
+      "answer": "No Kelvin support in v1",
+      "source": "system_default_expired"
+    }
+  ],
+  "known_issues": [],
+  "metrics": {
+    "duration_s": 123.4,
+    "tokens": {
+      "req_design": 8100,
+      "req_review": 1200
+    }
+  },
+  "rendered_at": "2026-10-12T00:00:00+00:00"
+}

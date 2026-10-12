@@ -1,0 +1,90 @@
+{
+  "project": "temp-conv",
+  "version": 1,
+  "requirements_version": 2,
+  "overview": "A single-file Python command-line tool that parses one numeric argument and prints the converted temperature, with strict input validation.",
+  "architecture": {
+    "summary": "One stateless component: parse, validate, convert, print.",
+    "components": [
+      {
+        "id": "C-01",
+        "name": "converter",
+        "responsibility": "Parse the CLI argument, validate it is a finite number, apply the conversion formula and print the result with two decimals.",
+        "satisfies": ["REQ-001", "REQ-002"]
+      }
+    ]
+  },
+  "interfaces": [
+    {
+      "id": "I-01",
+      "component": "C-01",
+      "kind": "cli",
+      "signature": "temp-conv <value> [--to {f|c}]",
+      "inputs": ["value: decimal string", "--to: optional target unit, default f"],
+      "outputs": ["converted temperature printed with two decimals"],
+      "errors": ["exit code 2 with stderr message when value is not a finite number"],
+      "satisfies": ["REQ-001", "REQ-002", "REQ-003"]
+    }
+  ],
+  "data_model": [
+    {
+      "name": "Conversion",
+      "description": "Transient value; nothing is persisted.",
+      "fields": [
+        {"name": "input_value", "type": "decimal"},
+        {"name": "direction", "type": "enum", "values": ["c2f", "f2c"]}
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "B-01",
+      "req": "REQ-001",
+      "steps": [
+        "Parse the positional argument as a decimal",
+        "Validate the value is finite",
+        "Compute F = C * 9/5 + 32",
+        "Print the result with two decimals"
+      ],
+      "edge_cases": ["negative values", "values below absolute zero are still converted numerically"]
+    },
+    {
+      "id": "B-02",
+      "req": "REQ-002",
+      "steps": [
+        "Parse the positional argument as a decimal",
+        "Validate the value is finite",
+        "Compute C = (F - 32) * 5/9",
+        "Print the result with two decimals"
+      ],
+      "edge_cases": ["negative values"]
+    },
+    {
+      "id": "B-03",
+      "req": "REQ-003",
+      "steps": [
+        "Attempt float() conversion of the argument",
+        "On failure print 'error: <argument> is not a number' to stderr",
+        "Exit with code 2"
+      ],
+      "edge_cases": ["NaN and infinity inputs are rejected as invalid"]
+    }
+  ],
+  "error_handling": [
+    {"case": "non-numeric argument", "behaviour": "stderr message + exit code 2"}
+  ],
+  "nfr": [
+    {"aspect": "performance", "requirement": "a single conversion completes in under 50 ms"}
+  ],
+  "test_plan": [
+    {"id": "T-01", "verifies": ["REQ-001"], "case": "temp-conv 0 -> prints 32.00"},
+    {"id": "T-02", "verifies": ["REQ-001"], "case": "temp-conv 100 -> prints 212.00"},
+    {"id": "T-03", "verifies": ["REQ-002"], "case": "temp-conv 32 --to c -> prints 0.00"},
+    {"id": "T-04", "verifies": ["REQ-003"], "case": "temp-conv abc -> exit code 2, stderr message"}
+  ],
+  "tech_choices": [
+    {"choice": "Python 3.13 standard library only (argparse)", "rationale": "no external dependencies for a small CLI"}
+  ],
+  "known_issues": [],
+  "extensions": {}
+}

@@ -1,0 +1,157 @@
+{
+  "project": "shopping-cart",
+  "version": 2,
+  "requirements_version": 3,
+  "overview": "A FastAPI-style REST service with an in-process cart store, a read-only catalogue client and an order store; SQLite persistence for orders.",
+  "architecture": {
+    "summary": "Three components behind a thin HTTP layer: cart manager, pricing/total calculator, checkout service.",
+    "components": [
+      {
+        "id": "C-01",
+        "name": "cart-manager",
+        "responsibility": "Owns cart state per cart token: add, update, remove items; enforces catalogue existence.",
+        "satisfies": ["REQ-001", "REQ-002", "REQ-005"]
+      },
+      {
+        "id": "C-02",
+        "name": "pricing",
+        "responsibility": "Computes the pre-tax total from items and catalogue prices.",
+        "satisfies": ["REQ-003"]
+      },
+      {
+        "id": "C-03",
+        "name": "checkout",
+        "responsibility": "Snapshots the cart into a persisted order and empties the cart.",
+        "satisfies": ["REQ-004"]
+      }
+    ]
+  },
+  "interfaces": [
+    {
+      "id": "I-01",
+      "component": "C-01",
+      "kind": "http",
+      "signature": "POST /v1/cart/items {product_id, quantity}",
+      "inputs": ["product_id: string", "quantity: integer >= 1"],
+      "outputs": ["200 with the updated cart view"],
+      "errors": ["404 unknown product_id", "422 quantity < 1"],
+      "satisfies": ["REQ-001", "REQ-005"]
+    },
+    {
+      "id": "I-02",
+      "component": "C-01",
+      "kind": "http",
+      "signature": "PATCH /v1/cart/items/{product_id} {quantity}",
+      "inputs": ["product_id: string", "quantity: integer >= 0"],
+      "outputs": ["200 with the updated cart view; item removed when quantity is 0"],
+      "errors": ["404 product not in cart"],
+      "satisfies": ["REQ-002"]
+    },
+    {
+      "id": "I-03",
+      "component": "C-02",
+      "kind": "http",
+      "signature": "GET /v1/cart",
+      "inputs": ["cart token header"],
+      "outputs": ["cart view with items and total (decimal(2) string)"],
+      "errors": [],
+      "satisfies": ["REQ-003"]
+    },
+    {
+      "id": "I-04",
+      "component": "C-03",
+      "kind": "http",
+      "signature": "POST /v1/cart/checkout",
+      "inputs": ["cart token header"],
+      "outputs": ["201 with the created order {id, items, total, created_at}"],
+      "errors": ["409 empty cart"],
+      "satisfies": ["REQ-004"]
+    }
+  ],
+  "data_model": [
+    {
+      "name": "Cart",
+      "description": "In-memory per cart token.",
+      "fields": [
+        {"name": "id", "type": "uuid"},
+        {"name": "items", "type": "map<product_id, quantity>"}
+      ]
+    },
+    {
+      "name": "Order",
+      "description": "SQLite table orders.",
+      "fields": [
+        {"name": "id", "type": "uuid"},
+        {"name": "items_json", "type": "text"},
+        {"name": "total", "type": "decimal(2)"},
+        {"name": "created_at", "type": "iso8601"}
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "B-01",
+      "req": "REQ-001",
+      "steps": [
+        "Validate quantity >= 1",
+        "Check product exists in catalogue",
+        "Increment or insert the cart item",
+        "Return the cart view"
+      ],
+      "edge_cases": ["cart reaches 100 distinct products -> 422"]
+    },
+    {
+      "id": "B-02",
+      "req": "REQ-002",
+      "steps": [
+        "Look up the cart item",
+        "Set the new quantity; remove the item when 0",
+        "Return the cart view"
+      ],
+      "edge_cases": ["updating a product not in the cart -> 404"]
+    },
+    {
+      "id": "B-03",
+      "req": "REQ-004",
+      "steps": [
+        "Load the cart; reject when empty",
+        "Compute the total via C-02",
+        "Insert the order row and commit",
+        "Empty the cart"
+      ],
+      "edge_cases": ["commit failure -> order not created, cart kept"]
+    },
+    {
+      "id": "B-04",
+      "req": "REQ-006",
+      "steps": [
+        "Serve cart reads from memory",
+        "Serve cart writes with a single lock acquisition"
+      ],
+      "edge_cases": ["lock contention under 50 concurrent shoppers"]
+    }
+  ],
+  "error_handling": [
+    {"case": "unknown product", "behaviour": "404, cart unchanged"},
+    {"case": "invalid quantity", "behaviour": "422 with field error detail"},
+    {"case": "checkout of empty cart", "behaviour": "409"}
+  ],
+  "nfr": [
+    {"aspect": "performance", "requirement": "p95 under 200 ms at 50 concurrent shoppers (REQ-006)"},
+    {"aspect": "durability", "requirement": "orders survive service restart"}
+  ],
+  "test_plan": [
+    {"id": "T-01", "verifies": ["REQ-001"], "case": "add P1 qty 2 then P1 qty 1 -> qty 3"},
+    {"id": "T-02", "verifies": ["REQ-002"], "case": "set qty 0 -> item removed"},
+    {"id": "T-03", "verifies": ["REQ-003"], "case": "10.00 x2 + 5.50 x1 -> total 25.50"},
+    {"id": "T-04", "verifies": ["REQ-004"], "case": "checkout -> order persisted, cart empty"},
+    {"id": "T-05", "verifies": ["REQ-005"], "case": "add unknown product -> 404, cart unchanged"},
+    {"id": "T-06", "verifies": ["REQ-006"], "case": "50-shopper load test, p95 < 200 ms"}
+  ],
+  "tech_choices": [
+    {"choice": "SQLite for orders", "rationale": "single-node durability without an external database"},
+    {"choice": "in-memory carts", "rationale": "carts are transient; orders are the durable record"}
+  ],
+  "known_issues": [],
+  "extensions": {}
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "req3-manifest/1",
+  "job_id": "j_fixture0001",
+  "project": "shopping-cart",
+  "status": "completed",
+  "versions": {
+    "requirements": 2,
+    "spec": 1
+  },
+  "profile": "json",
+  "repo": null,
+  "files": [
+    {
+      "path": "requirements.json",
+      "bytes": 5295,
+      "sha256": "87c304acdbd6a075e6e53f1aaf06d43d6f9f863d87665af4fbc27772ae46388a"
+    },
+    {
+      "path": "spec.json",
+      "bytes": 6307,
+      "sha256": "c700b8078a876ff33faee349ab0ac20669a0455bb7eeb84002a4a6bd3f442065"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "question_id": "Q-01",
+      "answer": "No payment processing in v1",
+      "source": "user"
+    },
+    {
+      "id": "D-02",
+      "question_id": "Q-02",
+      "answer": "Checkout empties the cart immediately",
+      "source": "system_default_expired"
+    }
+  ],
+  "known_issues": [],
+  "metrics": {
+    "duration_s": 123.4,
+    "tokens": {
+      "req_design": 8100,
+      "req_review": 1200
+    }
+  },
+  "rendered_at": "2026-10-12T00:00:00+00:00"
+}

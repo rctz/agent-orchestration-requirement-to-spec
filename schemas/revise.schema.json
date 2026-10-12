@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/revise.schema.json",
+  "title": "req3 revise analysis (design §3 revise flow, used from M6)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["needs_questions", "requirements_affected", "reason"],
+  "properties": {
+    "needs_questions": {"type": "boolean"},
+    "requirements_affected": {"type": "boolean"},
+    "reason": {"type": "string", "minLength": 1},
+    "suggested_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text", "kind", "default_answer"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^Q-\\d{2}$"},
+          "text": {"type": "string", "minLength": 1},
+          "why": {"type": "string"},
+          "kind": {"enum": ["choice", "free_text", "confirm"]},
+          "options": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
+          "default_answer": {"type": "string", "minLength": 1},
+          "default_rationale": {"type": "string"}
+        }
+      }
+    }
+  }
+}

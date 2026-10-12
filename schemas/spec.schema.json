@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "req3/spec.schema.json",
+  "title": "req3 canonical spec document (design §7)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "version", "requirements_version", "overview", "architecture"],
+  "properties": {
+    "project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "version": {"type": "integer", "minimum": 1},
+    "requirements_version": {"type": "integer", "minimum": 1},
+    "overview": {"type": "string", "minLength": 1},
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "components"],
+      "properties": {
+        "summary": {"type": "string", "minLength": 1},
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "responsibility", "satisfies"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^C-\\d{2}$"},
+              "name": {"type": "string", "minLength": 1},
+              "responsibility": {"type": "string", "minLength": 1},
+              "satisfies": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^REQ-\\d{3}$"}}
+            }
+          }
+        }
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "component", "kind", "signature", "satisfies"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^I-\\d{2}$"},
+          "component": {"type": "string", "pattern": "^C-\\d{2}$"},
+          "kind": {"enum": ["cli", "http", "function", "file"]},
+          "signature": {"type": "string", "minLength": 1},
+          "inputs": {"type": "array", "items": {"type": "string"}},
+          "outputs": {"type": "array", "items": {"type": "string"}},
+          "errors": {"type": "array", "items": {"type": "string"}},
+          "satisfies": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^REQ-\\d{3}$"}}
+        }
+      }
+    },
+    "data_model": {"type": "array", "items": {"type": "object"}},
+    "behaviors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "req", "steps"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^B-\\d{2}$"},
+          "req": {"type": "string", "pattern": "^REQ-\\d{3}$"},
+          "steps": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "edge_cases": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "error_handling": {"type": "array", "items": {"type": "object"}},
+    "nfr": {"type": "array", "items": {"type": "object"}},
+    "test_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verifies", "case"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^T-\\d{2}$"},
+          "verifies": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^REQ-\\d{3}$"}},
+          "case": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "tech_choices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["choice", "rationale"],
+        "properties": {
+          "choice": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "known_issues": {"type": "array", "items": {"type": "string"}},
+    "extensions": {"type": "object"}
+  }
+}
