@@ -61,7 +61,7 @@ async def revise_analyze(ctx: JobContext):
             state["question_round"] = state.get("question_round", 0) + 1
             ttl = ctx.options.get("question_ttl_s", ctx.config.question_ttl_s)
             expire_at = (
-                dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=int(ttl))
+                dt.datetime.now(dt.UTC) + dt.timedelta(seconds=int(ttl))
             ).isoformat()
             await ctx.save(state=state)
             return (
