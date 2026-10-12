@@ -15,15 +15,25 @@ RUN python3 gen_opencode_config.py --roles roles.yaml --prompts prompts \
     --out /out/opencode.json
 
 FROM node:22-slim
+# git is required at runtime: opencode's message pipeline shells out to git
+# for workspace info when a session uses ?directory= (verified M4: without
+# git every message call on a non-default directory 500s "UnknownError").
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 # Pinned 1.19.0 (plan §1). npm's postinstall hook can fail silently — run it
 # explicitly afterwards (gotcha list).
 RUN npm install -g opencode-ai@1.19.0 \
  && cd "$(npm root -g)/opencode-ai" && node postinstall.mjs \
  && opencode --version
 WORKDIR /app
-COPY --from=config /out/opencode.json /app/opencode.json
-# Project skills (verified location M4; agents currently use none).
-COPY opencode/skills/ /app/.opencode/skill/
+# GLOBAL config, not project config: opencode resolves config per session
+# directory (?directory=/data/jobs/<id> has no opencode.json ancestor), so
+# agents/provider must live in the global config dir to apply everywhere
+# (verified M4: project-only config 500s every directory session).
+COPY --from=config /out/opencode.json /root/.config/opencode/opencode.json
+# Project skills (verified location M4+; agents currently use none).
+COPY opencode/skills/ /root/.config/opencode/skill/
 EXPOSE 4096
 # Internal network only — never published (design §11).
 CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096"]

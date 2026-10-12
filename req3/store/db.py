@@ -167,6 +167,8 @@ class Database:
             raise ValueError(f"non-updatable columns: {sorted(unknown)}")
         if not fields:
             return True
+        if isinstance(fields.get("error"), dict):
+            fields["error"] = json.dumps(fields["error"], ensure_ascii=False)
         assignments = ", ".join(f'"{name}" = ?' for name in fields)
         values = (*fields.values(), utcnow(), job_id)
         cur = await self.conn.execute(
@@ -174,7 +176,6 @@ class Database:
         )
         await self.conn.commit()
         return cur.rowcount > 0
-
     async def jobs_with_status(self, status: str) -> list[JobRecord]:
         cur = await self.conn.execute(
             f"SELECT {_JOB_COLUMNS} FROM jobs WHERE status = ? ORDER BY created_at",

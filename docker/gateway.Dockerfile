@@ -8,7 +8,11 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY req3/ ./req3/
 RUN pip install --no-cache-dir .
-COPY roles.yaml prompts/ schemas/ checklists/ profiles/ ./
+COPY roles.yaml ./
+COPY prompts/ ./prompts/
+COPY schemas/ ./schemas/
+COPY checklists/ ./checklists/
+COPY profiles/ ./profiles/
 COPY docker/gateway.config.yaml /app/config.yaml
 ENV REQ3_CONFIG=/app/config.yaml
 EXPOSE 7790

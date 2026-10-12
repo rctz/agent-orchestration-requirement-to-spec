@@ -15,7 +15,7 @@ from typing import Any
 import yaml
 
 from ...checks.language import english_only_violations
-from ...checks.schema import load_schema, validate_named
+from ...checks.schema import deref_schema, load_schema, validate_named
 from ...checks.size import check_size
 from ...config import SizeBudget
 from ...engine.review_rules import (
@@ -182,7 +182,7 @@ def _deep_check_errors(doc: dict[str, Any], size: str, budgets: dict[str, SizeBu
 
 
 async def req_design(ctx: JobContext):
-    schema = load_schema("req_design_output")
+    schema = deref_schema(load_schema("req_design_output"))
     prompt, prior = _build_design_prompt(ctx)
     budgets = ctx.config.size_budgets
 
