@@ -71,7 +71,7 @@ decisions, token/time metrics). Older artifact versions stay downloadable
 
 | v2 | v3 |
 |---|---|
-| URL `https://req2.rctz.online` | `http://172.28.50.183:7790` (ask owner for a tunnel URL if you're off-LAN) |
+| URL `https://req2.rctz.online` | `https://req3.rctz.online` (public via Cloudflare tunnel) |
 | API key for v2 gateway | new key for req3 (same `X-API-Key` header works) |
 | `--output-format men-spi` / `men-plan` | alias to `men` (both files always included) |
 | two deliveries (gate + completion) | one delivery at completion, all files |

@@ -19,7 +19,7 @@ import time
 import urllib.error
 import urllib.request
 
-DEFAULT_URL = os.environ.get("REQ3_URL", "http://172.28.50.183:7790")
+DEFAULT_URL = os.environ.get("REQ3_URL", "https://req3.rctz.online")
 
 
 def _api_key() -> str:
