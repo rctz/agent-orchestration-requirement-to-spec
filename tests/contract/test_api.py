@@ -192,3 +192,11 @@ def test_create_refused_when_executor_unhealthy(tmp_path):
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "executor_unavailable"
         assert "req-designer" in response.json()["error"]["message"]
+
+
+def test_x_api_key_header_accepted(client):
+    """v2-client compatibility: X-API-Key works like Bearer (contract pack)."""
+    ok = client.get("/v1/jobs", headers={"X-API-Key": API_KEY})
+    assert ok.status_code == 200
+    bad = client.get("/v1/jobs", headers={"X-API-Key": "wrong"})
+    assert bad.status_code == 401

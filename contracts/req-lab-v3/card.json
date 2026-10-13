@@ -1,0 +1,25 @@
+{
+    "name": "req3",
+    "description": "Requirements & spec service: prompt -> clarifying questions -> confirmed requirements -> reviewed spec, delivered as versioned artifacts.",
+    "version": "1.0.0",
+    "capabilities": {
+        "streaming": false,
+        "pushNotifications": true
+    },
+    "defaultInputModes": [
+        "text/plain",
+        "application/json"
+    ],
+    "defaultOutputModes": [
+        "text/plain",
+        "application/json"
+    ],
+    "skills": [
+        {
+            "id": "requirements-and-spec",
+            "name": "Requirements & spec authoring",
+            "description": "Send a project prompt; answer clarifying questions; APPROVE the requirements; receive spec artifacts."
+        }
+    ],
+    "url": "http://localhost:7790/a2a"
+}
