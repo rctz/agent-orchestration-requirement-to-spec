@@ -19,7 +19,7 @@ Everything you need is this file + one tool beside it:
 <this folder>/tools/req3_client.py    # stdlib-only Python 3 client — THE way to call
 ```
 
-Gateway URL: `http://172.28.50.183:7790` (override with `--url` or env
+Gateway URL: `https://req3.rctz.online` (override with `--url` or env
 `REQ3_URL`). **Auth: every call must carry `X-API-Key`** (or
 `Authorization: Bearer`) — pass `--api-key <KEY>` or set env `REQ3_API_KEY`,
 or ship the key in `API_KEY.txt` beside this SKILL.md (one line). Check
