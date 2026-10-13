@@ -25,6 +25,7 @@ STATE_MAP = {
     "completed": "completed",
     "completed_with_issues": "completed",
     "failed": "failed",
+    "cancelled": "canceled",
 }
 
 
@@ -89,9 +90,20 @@ async def agent_card(request: Request) -> dict:
     return card
 
 
-def _task_from_job(job: dict[str, Any], base_url: str) -> dict:
-    state = STATE_MAP.get(job["status"], "working")
+def _task_from_job(job: dict[str, Any], base_url: str) -> dict[str, Any]:
+    state = STATE_MAP.get(job["status"], job["status"])
     base = {"id": job["job_id"], "contextId": job["job_id"], "kind": "task"}
+    if state == "canceled":
+        return {
+            **base,
+            "status": {
+                "state": state,
+                "message": agent_msg([
+                    tx("Task cancelled by the caller."),
+                    dt({"phase": job.get("phase"), "versions": job.get("versions")}),
+                ]),
+            },
+        }
     if state == "input-required":
         if job.get("gate") == "confirm_requirements":
             parts = [

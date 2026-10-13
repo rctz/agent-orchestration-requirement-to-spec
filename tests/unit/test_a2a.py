@@ -226,3 +226,48 @@ def test_a2a_message_send_with_options_creates_job(client):
     task = response.json()["result"]
     assert task["id"].startswith("j_")
     assert task["status"]["state"] in {"submitted", "working"}
+
+
+def test_a2a_cancelled_job_projects_canceled(tmp_path):
+    """Regression (2026-10-13): `cancelled` was missing from STATE_MAP and
+    the fallback lied `working` — callers could never see a cancellation."""
+    import time
+
+    from tests.fakes import QUESTION, design_reply, make_doc
+
+    app = create_app(
+        Config(data_dir=str(tmp_path / "data"), api_key=API_KEY),
+        executor=FakeExecutor([design_reply(make_doc(), [QUESTION])]),
+    )
+
+    def rpc(client, req_id, method, params):
+        return client.post(
+            "/a2a",
+            headers=AUTH,
+            json={"jsonrpc": "2.0", "id": req_id, "method": method,
+                  "params": params},
+        )
+
+    with TestClient(app) as client:
+        started = rpc(client, 11, "message/send",
+                      {"message": _msg([{"kind": "text", "text": "demo"}])})
+        task_id = started.json()["result"]["id"]
+        deadline = time.time() + 10
+        parked = False
+        while time.time() < deadline:
+            got = rpc(client, 12, "tasks/get", {"id": task_id})
+            if got.json()["result"]["status"]["state"] == "input-required":
+                parked = True
+                break
+            time.sleep(0.05)
+        assert parked, "job never parked at the questions gate"
+
+        cancel = rpc(client, 13, "tasks/cancel", {"id": task_id})
+        assert cancel.status_code == 200
+        assert cancel.json()["result"]["status"]["state"] == "canceled"
+
+        after = rpc(client, 14, "tasks/get", {"id": task_id})
+        result = after.json()["result"]
+        assert result["status"]["state"] == "canceled"
+        text = result["status"]["message"]["parts"][0]["text"]
+        assert "cancel" in text.lower()

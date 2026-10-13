@@ -197,6 +197,11 @@ class JobRunner:
             try:
                 action = await self._dispatch(ctx, phase)
             except PhaseError as exc:
+                # A cancel that landed while the agent call was in flight
+                # must survive: re-check before writing failure state.
+                fresh = await self.db.get_job(job_id)
+                if fresh is not None and fresh.status in TERMINAL_STATUS_VALUES:
+                    return
                 await ctx.save(
                     status="failed",
                     error={"code": exc.code, "message": str(exc), "phase": phase},
@@ -205,6 +210,12 @@ class JobRunner:
                     "job_failed", {"phase": phase, "code": exc.code, "message": str(exc)}
                 )
                 self._notify_webhook(ctx.job, "job_failed", "failed")
+                return
+            # Same guard on the success path: the phase step may have taken
+            # minutes (LLM call); a cancel during it must not be clobbered
+            # by the transition save below.
+            fresh = await self.db.get_job(job_id)
+            if fresh is not None and fresh.status in TERMINAL_STATUS_VALUES:
                 return
             kind = action[0]
             if kind == "continue":

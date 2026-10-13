@@ -359,3 +359,42 @@ def test_sse_json_snapshot_and_since(tmp_path):
             headers=AUTH,
         ).json()["events"]
         assert later and later[0]["seq"] > events[0]["seq"]
+
+
+@pytest.mark.asyncio()
+async def test_cancel_during_phase_is_not_clobbered(tmp_path):
+    """Live bug (2026-10-13): a cancel landing while the runner is inside a
+    phase step (LLM call in flight) was overwritten by the next transition
+    save — the job kept running after `cancelled`. The runner must re-check
+    status after dispatch and abort without saving."""
+    import asyncio
+
+    import httpx
+
+    fake = FakeExecutor(
+        [design_reply(make_doc(reqs=("REQ-001",)), [])], block_first=True
+    )
+    app = create_app(_config(tmp_path), executor=fake)
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
+            created = await client.post(
+                "/v1/jobs", json={"prompt": "demo tool"}, headers=AUTH
+            )
+            assert created.status_code == 202, created.text
+            job_id = created.json()["job_id"]
+            deadline = time.monotonic() + 5
+            while not fake.agents and time.monotonic() < deadline:
+                await asyncio.sleep(0.02)
+            assert fake.agents, "first agent call never started"
+            cancelled = await client.post(
+                f"/v1/jobs/{job_id}/cancel", headers=AUTH
+            )
+            assert cancelled.status_code == 200, cancelled.text
+            assert cancelled.json()["status"] == "cancelled"
+            fake.gate.set()  # release the in-flight agent call
+            await asyncio.sleep(0.5)  # let the runner step finish
+            body = (await client.get(f"/v1/jobs/{job_id}", headers=AUTH)).json()
+            assert body["status"] == "cancelled"
