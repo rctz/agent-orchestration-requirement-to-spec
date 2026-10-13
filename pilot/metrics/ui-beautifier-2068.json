@@ -1,0 +1,25 @@
+{
+  "job_id": "j_a1cdfb396891",
+  "status": "completed_with_issues",
+  "wall_s": 1903.6,
+  "waiting_s": 11.7,
+  "tokens": {
+    "req-designer": 64077,
+    "req-reviewer": 33187,
+    "spec-designer": 47617,
+    "spec-reviewer": 48842
+  },
+  "tokens_total": 193723,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 5,
+  "error": null,
+  "spec_size_kb": 24.7,
+  "project": "ui-beautifier-2068"
+}

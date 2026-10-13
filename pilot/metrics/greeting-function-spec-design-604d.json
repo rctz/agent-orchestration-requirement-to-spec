@@ -1,0 +1,25 @@
+{
+  "job_id": "j_f44f9908ec4c",
+  "status": "completed_with_issues",
+  "wall_s": 1678.2,
+  "waiting_s": 3.0,
+  "tokens": {
+    "req-designer": 42242,
+    "req-reviewer": 12746,
+    "spec-designer": 19485,
+    "spec-reviewer": 35645
+  },
+  "tokens_total": 110118,
+  "rounds": {
+    "req_review": 1,
+    "spec_review": 1
+  },
+  "versions": {
+    "requirements": 1,
+    "spec": 1
+  },
+  "known_issues": 3,
+  "error": null,
+  "spec_size_kb": 14.3,
+  "project": "greeting-function-spec-design-604d"
+}

@@ -1,0 +1,25 @@
+{
+  "job_id": "j_88f9bd145c81",
+  "status": "completed_with_issues",
+  "wall_s": 2659.6,
+  "waiting_s": 11.3,
+  "tokens": {
+    "req-designer": 135674,
+    "req-reviewer": 34349,
+    "spec-designer": 44912,
+    "spec-reviewer": 51751
+  },
+  "tokens_total": 266686,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 4,
+    "spec": 2
+  },
+  "known_issues": 6,
+  "error": null,
+  "spec_size_kb": 26.0,
+  "project": "login-email-your-role-eaed"
+}

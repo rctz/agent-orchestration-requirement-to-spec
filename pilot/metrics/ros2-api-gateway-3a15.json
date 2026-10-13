@@ -1,0 +1,25 @@
+{
+  "job_id": "j_7c42da47bffc",
+  "status": "completed_with_issues",
+  "wall_s": 3118.0,
+  "waiting_s": 12.1,
+  "tokens": {
+    "req-designer": 163292,
+    "req-reviewer": 32689,
+    "spec-designer": 59286,
+    "spec-reviewer": 70955
+  },
+  "tokens_total": 326222,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 5,
+    "spec": 2
+  },
+  "known_issues": 6,
+  "error": null,
+  "spec_size_kb": 27.8,
+  "project": "ros2-api-gateway-3a15"
+}

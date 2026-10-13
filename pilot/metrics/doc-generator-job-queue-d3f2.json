@@ -1,0 +1,25 @@
+{
+  "job_id": "j_08df37feb4b8",
+  "status": "completed_with_issues",
+  "wall_s": 2642.6,
+  "waiting_s": 10.1,
+  "tokens": {
+    "req-designer": 71873,
+    "req-reviewer": 32776,
+    "spec-designer": 66241,
+    "spec-reviewer": 82247
+  },
+  "tokens_total": 253137,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 12,
+  "error": null,
+  "spec_size_kb": 35.1,
+  "project": "doc-generator-job-queue-d3f2"
+}

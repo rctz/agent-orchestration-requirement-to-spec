@@ -1,0 +1,25 @@
+{
+  "job_id": "j_35038e5f9886",
+  "status": "completed_with_issues",
+  "wall_s": 2127.1,
+  "waiting_s": 10.9,
+  "tokens": {
+    "req-designer": 47920,
+    "req-reviewer": 27810,
+    "spec-designer": 47930,
+    "spec-reviewer": 51767
+  },
+  "tokens_total": 175427,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 3,
+  "error": null,
+  "spec_size_kb": 24.5,
+  "project": "i-want-simple-python-to-do-web-scriping"
+}

@@ -1,0 +1,14 @@
+{
+  "better": "A",
+  "missing_in_a": [
+    "Parameter-arity check greet.length === 1 (B REQ-006/T-06)",
+    "Self-contained spec-level test plan with exact assertion steps (B's T-01..T-06; A's spec §9 verification content is not present in the provided text)"
+  ],
+  "missing_in_b": [
+    "Thai-language document content per prompt (B defers it as an open item; A supplies a complete Thai annex per D-03/§9)",
+    "Astral-plane/emoji Unicode check case (A AC-14; B rules cover all code points but tests no supplementary-plane example)"
+  ],
+  "reasons": "Both fully cover behaviors 1–6 and are implementable, but A eliminates more interpretation: explicit dispatch precedence, boxed-String handling, named-export-only contract with link-error semantics, 15 concrete ACs including purity probes, and a claimed complete Thai annex versus B's deferred open item. Costs for A: invented envelope (1 MiB, Node≥16) and truncation; B is leaner and creep-free but lighter and leaves default-export unstated.",
+  "a_is_v3": false,
+  "better_is_v3": "tie"
+}

@@ -1,6 +1,6 @@
 # From v2 05-requirements-v5.md (D-01/D-02/D-03 + REQ-005/008/011).
-currency: Thai baht with the ฿ prefix and two decimals (e.g. ฿46.50)
-quantity: Never clamp — preserve full state and report/annotate invalid attempts; a text input widget
-Thai: Product names shown to the user are Thai-only (English names are internal catalog metadata)
-cart total: Exact sum of line totals rendered with ฿ prefix, two decimals
-empty cart: Grand total renders ฿0.00
+currency: "Thai baht with the ฿ prefix and two decimals (e.g. ฿46.50)"
+quantity: "Never clamp - preserve full state and report invalid attempts; a text input widget"
+Thai: "Product names shown to the user are Thai-only (English names are internal catalog metadata)"
+cart total: "Exact sum of line totals rendered with ฿ prefix, two decimals"
+empty cart: "Grand total renders ฿0.00"

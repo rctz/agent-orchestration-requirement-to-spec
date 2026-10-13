@@ -1,0 +1,25 @@
+{
+  "job_id": "j_cde077da4d41",
+  "status": "completed_with_issues",
+  "wall_s": 2417.1,
+  "waiting_s": 7.1,
+  "tokens": {
+    "req-designer": 82553,
+    "req-reviewer": 23279,
+    "spec-designer": 40791,
+    "spec-reviewer": 57175
+  },
+  "tokens_total": 203798,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 5,
+  "error": null,
+  "spec_size_kb": 21.2,
+  "project": "email-login-ui-e461"
+}

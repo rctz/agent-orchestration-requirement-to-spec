@@ -1,0 +1,25 @@
+{
+  "job_id": "j_6e3af82f45c4",
+  "status": "completed_with_issues",
+  "wall_s": 2104.4,
+  "waiting_s": 16.9,
+  "tokens": {
+    "req-designer": 99447,
+    "req-reviewer": 26483,
+    "spec-designer": 48608,
+    "spec-reviewer": 63502
+  },
+  "tokens_total": 238040,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 4,
+    "spec": 2
+  },
+  "known_issues": 2,
+  "error": null,
+  "spec_size_kb": 25.8,
+  "project": "simple-shopping-cart-0fc0"
+}

@@ -46,7 +46,8 @@ RUBRIC = (
 )
 
 
-def http(method: str, url: str, key: str, body: dict | None = None) -> tuple[int, object]:
+def http(method: str, url: str, key: str, body: dict | None = None,
+         timeout_s: int = 90) -> tuple[int, object]:
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode() if body is not None else None,
@@ -58,7 +59,7 @@ def http(method: str, url: str, key: str, body: dict | None = None) -> tuple[int
         method=method,
     )
     try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
             raw = resp.read()
             return resp.status, (json.loads(raw) if raw else {})
     except urllib.error.HTTPError as exc:
@@ -118,7 +119,12 @@ def load_answers(answers_dir: Path, project: str) -> list[tuple[str, str]]:
     path = answers_dir / f"{project}.yaml"
     if not path.is_file():
         return []
-    data = yaml.safe_load(path.read_text()) or {}
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError as exc:
+        print(f"    WARNING: {path.name} is invalid YAML ({exc}) — "
+              "using defaults", flush=True)
+        return []
     return [(str(k), str(v)) for k, v in data.items()]
 
 
@@ -216,22 +222,39 @@ def collect_metrics(gw: Gateway, result: dict) -> dict:
 
 
 def judge_call(prompt: str) -> dict:
+    """glm-5.3 reasons before answering: budget generously (a long rubric
+    input makes reasoning exceed small max_tokens and content comes back
+    EMPTY with finish_reason=length — observed live in the pilot)."""
     import os
     base = os.environ["LITELLM_BASE_URL"].rstrip("/")
     key = os.environ["LITELLM_API_KEY"]
-    status, resp = http("POST", f"{base}/chat/completions", key, {
-        "model": "glm-5.3",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2,
-        "max_tokens": 1500,
-    })
-    if status != 200:
-        raise RuntimeError(f"judge LLM {status}: {resp}")
-    text = resp["choices"][0]["message"]["content"]
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise RuntimeError(f"judge returned no JSON: {text[:200]}")
-    return json.loads(match.group(0))
+    last_err = ""
+    for attempt, max_tokens in enumerate((8000, 16000), 1):
+        status, resp = http("POST", f"{base}/chat/completions", key, {
+            "model": "glm-5.3",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "max_tokens": max_tokens,
+        }, timeout_s=420)
+        if status != 200:
+            last_err = f"judge LLM {status}: {str(resp)[:200]}"
+            continue
+        choice = resp["choices"][0]
+        text = choice["message"].get("content") or ""
+        if not text.strip():
+            last_err = (f"empty content (finish={choice.get('finish_reason')}, "
+                        f"usage={resp.get('usage', {}).get('completion_tokens')}"
+                        " completion tokens)")
+            continue
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            last_err = f"no JSON in: {text[:200]}"
+            continue
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError as exc:
+            last_err = f"bad JSON ({exc}): {text[:200]}"
+    raise RuntimeError(last_err or "judge failed")
 
 
 def _latest_md(folder: Path) -> str:
@@ -429,6 +452,11 @@ def main() -> int:
     if args.judge:
         for project in V2_COMPLETE:
             if not (out_dir / "metrics" / f"{project}.json").is_file():
+                continue
+            if (out_dir / "judge" / f"{project}.json").is_file():
+                print(f"== judge {project} (cached)", flush=True)
+                judge_results[project] = json.loads(
+                    (out_dir / "judge" / f"{project}.json").read_text())
                 continue
             print(f"== judge {project}", flush=True)
             try:

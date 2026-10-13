@@ -1,0 +1,25 @@
+{
+  "job_id": "j_983cfa22baa4",
+  "status": "completed_with_issues",
+  "wall_s": 1991.6,
+  "waiting_s": 5.4,
+  "tokens": {
+    "req-designer": 57551,
+    "req-reviewer": 25796,
+    "spec-designer": 37750,
+    "spec-reviewer": 57496
+  },
+  "tokens_total": 178593,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 5,
+  "error": null,
+  "spec_size_kb": 18.4,
+  "project": "individual-item-remover-1f6f"
+}

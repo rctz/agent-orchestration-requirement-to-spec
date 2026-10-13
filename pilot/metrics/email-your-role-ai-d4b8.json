@@ -1,0 +1,25 @@
+{
+  "job_id": "j_966ef99a2a1c",
+  "status": "completed_with_issues",
+  "wall_s": 2962.0,
+  "waiting_s": 10.3,
+  "tokens": {
+    "req-designer": 75694,
+    "req-reviewer": 32139,
+    "spec-designer": 55511,
+    "spec-reviewer": 60048
+  },
+  "tokens_total": 223392,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 8,
+  "error": null,
+  "spec_size_kb": 26.9,
+  "project": "email-your-role-ai-d4b8"
+}

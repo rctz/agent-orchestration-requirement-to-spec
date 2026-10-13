@@ -1,0 +1,16 @@
+{
+  "better": "A",
+  "missing_in_a": [
+    "explicit rejection of non-HTML Content-Type responses (B gates on text/html; weakly implied by 'web scraping')",
+    "response body size cap / memory bound (B: 10 MiB)",
+    "robots.txt compliance check (B gates on it; arguably part of polite scraping, not strictly implied)"
+  ],
+  "missing_in_b": [
+    "configurable extraction via CSS selector (A lets user choose what to scrape; B fixes title/text/links schema)",
+    "user-facing success feedback line on stdout (A's REQ-006; B's shown text has none)",
+    "CSV output option (A supports CSV and JSON; B is JSON-only — prompt didn't require both)"
+  ],
+  "reasons": "A gives a lean, fully traceable pipeline: every requirement has Given/When/Then acceptance criteria, and the spec pins the CLI, exact User-Agent, timeout, redirects, extraction, CSV/JSON output, and error handling — implementable as-is and consistent, matching the 'simple' request. B is heavily over-engineered versus 'simple' (robots gate, retries, 6 exit codes, size caps), its spec leaves the page-fetch User-Agent unstated, and both B documents are truncated mid-section (output module, error table, FR-005+), so an implementer must fill gaps.",
+  "a_is_v3": true,
+  "better_is_v3": "v3"
+}

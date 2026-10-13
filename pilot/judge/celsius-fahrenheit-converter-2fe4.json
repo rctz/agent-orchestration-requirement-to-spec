@@ -1,0 +1,13 @@
+{
+  "better": "tie",
+  "missing_in_a": [
+    "Behavior for numeric inputs outside IEEE-754 double range (e.g. 10**400) is undefined in A; an implementer following A would let OverflowError escape",
+    "A's isinstance-based check accepts int/float subclasses (IntEnum, custom int subclasses) — only bool is explicitly rejected"
+  ],
+  "missing_in_b": [
+    "Bundled pytest test-suite deliverable (A's REQ-006/D-01, user-confirmed); not strictly implied by the raw prompt"
+  ],
+  "reasons": "Both fully cover the prompt: function, formula, 2-decimal rounding, ValueError on non-numeric input, purity, no CLI/file I/O. Both are testable and internally consistent. B preempts more implementer questions (huge ints, conversion overflow, subclasses) but adds more designer-invented contracts; A is leaner with less scope creep (only the user-confirmed test suite) but leaves overflow edges open. Trade-off balances to a tie.",
+  "a_is_v3": true,
+  "better_is_v3": "tie"
+}

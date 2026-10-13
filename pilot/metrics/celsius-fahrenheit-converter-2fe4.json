@@ -1,0 +1,25 @@
+{
+  "job_id": "j_076cc2d5ae03",
+  "status": "completed_with_issues",
+  "wall_s": 963.4,
+  "waiting_s": 11.8,
+  "tokens": {
+    "req-designer": 26110,
+    "req-reviewer": 13794,
+    "spec-designer": 28469,
+    "spec-reviewer": 34720
+  },
+  "tokens_total": 103093,
+  "rounds": {
+    "req_review": 1,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 2,
+    "spec": 2
+  },
+  "known_issues": 1,
+  "error": null,
+  "spec_size_kb": 11.8,
+  "project": "celsius-fahrenheit-converter-2fe4"
+}

@@ -1,0 +1,25 @@
+{
+  "job_id": "j_128be60610b0",
+  "status": "completed_with_issues",
+  "wall_s": 1901.9,
+  "waiting_s": 1.6,
+  "tokens": {
+    "req-designer": 51369,
+    "req-reviewer": 22057,
+    "spec-designer": 53071,
+    "spec-reviewer": 46476
+  },
+  "tokens_total": 172973,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 2
+  },
+  "versions": {
+    "requirements": 3,
+    "spec": 2
+  },
+  "known_issues": 6,
+  "error": null,
+  "spec_size_kb": 25.3,
+  "project": "frontend-login-page-03b2"
+}
