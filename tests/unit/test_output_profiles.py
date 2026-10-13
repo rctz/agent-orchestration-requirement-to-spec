@@ -78,3 +78,35 @@ def test_register_rejects_invalid_and_builtin(tmp_path):
             json={"definition": {**VALID_PROFILE, "name": "men"}},
         )
         assert shadow.status_code == 409
+
+
+def test_v2_output_format_alias(tmp_path):
+    """v2 clients send options.output_format — it must select the profile."""
+    with _client(tmp_path) as client:
+        body = client.post(
+            "/v1/jobs",
+            headers=AUTH,
+            json={"prompt": "p",
+                  "options": {"output_format": "men-spi"}},
+        )
+        assert body.status_code == 202, body.text
+        job_id = body.json()["job_id"]
+        status = client.get(f"/v1/jobs/{job_id}", headers=AUTH).json()
+        # stored as the resolved builtin name (aliased men-spi -> men)
+        assert status["job_id"] == job_id
+
+        alias = client.post(
+            "/v1/jobs",
+            headers=AUTH,
+            json={"prompt": "p",
+                  "options": {"output_format": "canonical"}},
+        )
+        assert alias.status_code == 202  # canonical -> json
+
+        bad = client.post(
+            "/v1/jobs",
+            headers=AUTH,
+            json={"prompt": "p",
+                  "options": {"output_format": "nope"}},
+        )
+        assert bad.status_code == 422  # unknown names still fail fast

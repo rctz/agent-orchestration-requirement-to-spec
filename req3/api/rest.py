@@ -60,6 +60,9 @@ class JobOptions(BaseModel):
     question_ttl_s: int | None = Field(default=None, gt=0)
     user_language: str | None = None
     project_name: str | None = None
+    # v2 compatibility: format selector v2 clients send; resolved to
+    # output_profile at create time (never passed through to agents).
+    output_format: str | None = None
 
 
 class CreateJobRequest(BaseModel):
@@ -180,6 +183,12 @@ def _builtin_profile_names() -> list[str]:
     )
 
 
+#: v2 compatibility aliases (design §9 A2A: v2 clients work unchanged).
+#: v2 selected formats via options.output_format with these names; req3's
+#: `men` profile emits BOTH men-spi and men-plan files in one bundle.
+V2_PROFILE_ALIASES = {"men-spi": "men", "men-plan": "men", "canonical": "json"}
+
+
 async def _resolve_profile_name(request: Request, name: str) -> str:
     """Builtin names pass through; registered names resolve to their
     stored definition (JSON text, re-parsed at render time); anything
@@ -250,6 +259,14 @@ async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]
     )
     if isinstance(profile, str):
         profile = await _resolve_profile_name(request, profile)
+    if profile is None:
+        # v2 compat: options.output_format picks the profile (v2 default
+        # was "men"). Consumed here so it does not linger in options.
+        fmt = options.pop("output_format", None)
+        if isinstance(fmt, str) and fmt:
+            profile = await _resolve_profile_name(
+                request, V2_PROFILE_ALIASES.get(fmt, fmt)
+            )
     rec = None
     for _ in range(5):
         candidate = JobRecord(
