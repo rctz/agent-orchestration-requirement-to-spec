@@ -1,0 +1,22 @@
+python 3.13.5
+PASS W1 MemoryError at encode: raised 
+PASS W1 pre-existing output byte-identical 
+PASS W1 no truncation to 0 bytes 
+PASS W2 MemoryError mid-write: raised 
+PASS W2 partial file removed (not left 0-byte/partial) 
+PASS W3 open-before-encode destroys (the trap D-43 designs out) 
+PASS W4 MemoryError not a subclass of OSError 
+PASS N1 quoted multi-line header parses to two equal names 
+PASS N2 message embeds the name verbatim (no escaping) 
+PASS N3 message starts with the prefix and is ONE message 
+PASS N4 the tool ADDS exactly one terminating newline, none inside 
+PASS N5 empty duplicate name still cites '' 
+PASS N6 CR in name embeds verbatim (no escape invented) 
+PASS U1 byte 0x00 of '\xff' file cites line 1 
+PASS U2 CR-only file: last line = 4 for a trailing byte 
+PASS S1 absent target + encode fault -> still absent 
+PASS S2 pre-existing + encode fault -> intact 
+PASS S3 absent target + mid-write fault -> removed 
+PASS S4 pre-existing + mid-write fault -> removed (never truncated) 
+
+TOTAL FAILURES: 0

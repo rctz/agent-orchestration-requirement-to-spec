@@ -1,0 +1,10 @@
+PASS P1 v6-snippet success path deletes output (D-48 supersession evidence) 
+PASS P1b v7 except-scoped shape: success keeps file, failure removes it success_kept=True failure_removed=True
+PASS P1b at-open failure: no compensation, pre-existing target intact 
+PASS P2 write-phase form: pre-existing output REMOVED (assert path ABSENT) 
+PASS P2b encode-phase form: pre-existing output BYTE-IDENTICAL survived=True
+PASS P3 same-path failed run: exit 1, E-WRITE line, INPUT file deleted (R-4) rc=1 gone=True stderr='csv2json: error: cannot write /tmp/tmp7a8upa08/data.csv: Inp'
+PASS P4 manual dispatch: `-h out.json` → E-READ, exit 1, stdout EMPTY (D-49) rc=1 out='' err='csv2json: error: cannot read -h: No such file or d'
+PASS P4 argparse default: `-h out.json` → help on stdout, exit 0 (outcome D-49 forbids) rc=0 out_head='usage: -c [-h] input output\n\npositional '
+
+TOTAL CHECKS: 8  PASS: 8  FAIL: 0

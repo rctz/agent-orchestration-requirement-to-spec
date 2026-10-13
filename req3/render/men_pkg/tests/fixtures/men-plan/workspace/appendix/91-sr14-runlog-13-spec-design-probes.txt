@@ -1,0 +1,65 @@
+PASS P1 count 
+PASS P1 row1 slice 
+PASS P1 row1 fields 
+PASS P1 row2 slice 
+PASS P1 row2 fields 
+PASS P1 crlf/cr slices 
+PASS P1 blank-line slices 
+PASS P1 unterminated-last slice 
+PASS P2 line_of_offset('a,b\rc,d\rc\r', 10)==4 
+PASS P2 line_of_offset('a\nb\n\nc', 4)==3 
+PASS P2 line_of_offset('a\r\nb', 3)==2 
+PASS P2 line_of_offset('a\x0bb\nc', 4)==2 
+PASS P2 line_of_offset('a\x0cb\nc', 4)==2 
+PASS P2 line_of_offset('a\x85b\nc', 4)==2 
+PASS P2 line_of_offset('a\u2028b\nc', 4)==2 
+PASS P2 line_of_offset('a', 1)==1 
+PASS P2 line_of_offset('', 0)==1 
+PASS P3 scan('"1,2')==(True,1) 
+PASS P3 scan('"id,name')==(True,1) 
+PASS P3 scan('"1')==(True,1) 
+PASS P3 scan('"a\nb",c,"d\ne')==(True,2) 
+PASS P3 scan('a,b')==(False,0) 
+PASS P3 scan('"a\nb",c')==(False,0) 
+PASS P3 scan('5" ruler,2')==(False,0) 
+PASS P3 scan('"a""b"')==(False,0) 
+PASS P3 scan('"a"b')==(False,0) 
+PASS P3 scan('')==(False,0) 
+PASS P3 scan('\n')==(False,0) 
+PASS P3 scan('"a\r\nb')==(True,1) 
+PASS P3 NM multi-field AC -> N=2 M=3 
+PASS P4 CR-only byte cites line 4 
+PASS P4b LF file byte cites line 2 
+PASS P5 degrade loop terminates 
+PASS P5 limit is huge 
+PASS P6 single line + ]\n 
+PASS P6 escapes 
+PASS P6 NUL escape 
+PASS P6 VT escape 
+PASS P6 U+2028 raw 
+PASS P7 reader.line_num lags after CRLF record ('a\r\nb\r\nc') 
+PASS P7 reader.line_num lags after CRLF record ('a\r\nb\rc\nd') 
+PASS P8 happy 2 rows 
+PASS P8 empty header name (F-33) 
+PASS P8 whitespace-only line (D-36) 
+PASS P8 CR-only file 
+PASS P8 CRLF in quoted field (D-24) 
+PASS P8 no trailing terminator 
+PASS P8 data quote in unquoted field (D-30) 
+PASS P8 BOM stripped (D-16) 
+PASS P8 NM multi-field (D-30) 
+PASS P8 unterminated data row 
+PASS P8 unterminated header (D-25) 
+PASS P8 1-col unterminated 
+PASS P8 count error wins over later quote (D-29) 
+PASS P8 blank middle line 
+PASS P8 trailing blank line 
+PASS P8 only blank lines 
+PASS P8 empty file 
+PASS P8 BOM-only file (D-31) 
+PASS P8 duplicate header 
+PASS P8 second empty header name 
+PASS P8 too many fields 
+PASS P8 mixed terminators 
+
+TOTAL FAILURES: 0

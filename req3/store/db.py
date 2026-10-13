@@ -265,3 +265,35 @@ class Database:
             }
             for r in rows
         ]
+
+    # ---- output profiles (design §8: registered custom profiles) ----------
+
+    async def get_profile(self, name: str) -> dict[str, Any] | None:
+        """Return a registered profile definition by name, or None."""
+        cur = await self.conn.execute(
+            "SELECT definition FROM profiles WHERE name = ?", (name,)
+        )
+        row = await cur.fetchone()
+        return json.loads(row["definition"]) if row else None
+
+    async def list_profiles(self) -> list[dict[str, Any]]:
+        cur = await self.conn.execute(
+            "SELECT name, definition, created_at FROM profiles ORDER BY name"
+        )
+        rows = await cur.fetchall()
+        return [
+            {
+                "name": r["name"],
+                "definition": json.loads(r["definition"]),
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
+
+    async def save_profile(self, name: str, definition: dict[str, Any]) -> None:
+        await self.conn.execute(
+            "INSERT INTO profiles (name, definition, created_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(name) DO UPDATE SET definition = excluded.definition",
+            (name, json.dumps(definition, ensure_ascii=False), utcnow()),
+        )
+        await self.conn.commit()

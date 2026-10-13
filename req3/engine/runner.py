@@ -154,10 +154,12 @@ class JobRunner:
         db: Database,
         executor: Executor,
         workspace_root: Path,
+        webhooks=None,
     ):
         from .phases import requirement  # local import keeps module load light
 
         self._requirement = requirement
+        self.webhooks = webhooks
         self.config = config
         self.db = db
         self.executor = executor
@@ -202,6 +204,7 @@ class JobRunner:
                 await ctx.event(
                     "job_failed", {"phase": phase, "code": exc.code, "message": str(exc)}
                 )
+                self._notify_webhook(ctx.job, "job_failed", "failed")
                 return
             kind = action[0]
             if kind == "continue":
@@ -212,13 +215,22 @@ class JobRunner:
                 event_type = payload.pop("event_type", "input_required")
                 await ctx.save(status="input_required", gate=gate, **payload)
                 await ctx.event(event_type, {"gate": gate})
+                self._notify_webhook(ctx.job, event_type, "input_required")
                 return
             if kind == "done":
                 _, status, payload = action
                 await ctx.save(status=status, phase="done", gate=None, **payload)
                 await ctx.event("job_completed", {"status": status})
+                self._notify_webhook(ctx.job, "job_completed", status)
                 return
             raise PhaseError(f"unknown action {kind!r}", code="engine_error")
+
+    def _notify_webhook(self, job, event_type: str, status: str):
+        if self.webhooks is None:
+            return
+        callback = getattr(job, "callback_url", None)
+        if callback:
+            self.webhooks.notify(job.job_id, callback, event_type, status)
 
     async def _dispatch(self, ctx: JobContext, phase: str):
         if phase == "repo_resolve":

@@ -1,0 +1,32 @@
+PASS - I1 S-10 LF multi-quote: two-quantity(table) == fused, full per-record outcome
+PASS - I1 S-10b CRLF multi-quote: two-quantity(table) == fused, full per-record outcome
+PASS - I1 S-10c bare-CR multi-quote: two-quantity(table) == fused, full per-record outcome
+PASS - I1 T-C7 single-quote: two-quantity(table) == fused, full per-record outcome
+PASS - I1 doubled closed: two-quantity(table) == fused, full per-record outcome
+PASS - I1 doubled re-open same line: two-quantity(table) == fused, full per-record outcome
+PASS - I1 RE-OPEN LATER LINE (discriminator): two-quantity(table) == fused, full per-record outcome
+PASS - I1 re-open later line, CRLF interior: two-quantity(table) == fused, full per-record outcome
+PASS - I1 two quoted fields both closed: two-quantity(table) == fused, full per-record outcome
+PASS - I1 multi-record, error in 4th: two-quantity(table) == fused, full per-record outcome
+PASS - I1 trailing newline, unclosed: two-quantity(table) == fused, full per-record outcome
+PASS - I1 header-only unclosed: two-quantity(table) == fused, full per-record outcome
+PASS - I1 quote after leading field, interior break: two-quantity(table) == fused, full per-record outcome
+PASS - I2 S-10 LF multi-quote: both shapes compute the spec (N,M)=(2, 3)
+PASS - I2 S-10b CRLF multi-quote: both shapes compute the spec (N,M)=(2, 3)
+PASS - I2 S-10c bare-CR multi-quote: both shapes compute the spec (N,M)=(2, 3)
+PASS - I2 T-C7 single-quote: both shapes compute the spec (N,M)=(2, 2)
+PASS - I2 doubled closed: both shapes compute the spec (N,M)=None
+PASS - I2 doubled re-open same line: both shapes compute the spec (N,M)=(2, 2)
+PASS - I2 RE-OPEN LATER LINE (discriminator): both shapes compute the spec (N,M)=(2, 2)
+PASS - I2 re-open later line, CRLF interior: both shapes compute the spec (N,M)=(2, 2)
+PASS - I2 two quoted fields both closed: both shapes compute the spec (N,M)=None
+PASS - I2 multi-record, error in 4th: both shapes compute the spec (N,M)=(4, 4)
+PASS - I2 trailing newline, unclosed: both shapes compute the spec (N,M)=(3, 3)
+PASS - I2 header-only unclosed: both shapes compute the spec (N,M)=(1, 1)
+PASS - I2 quote after leading field, interior break: both shapes compute the spec (N,M)=(2, 2)
+PASS - D1 re-open-later-line corpus discriminates re-remember (M=3) vs spec latch (M=2)
+PASS - D2 66's corpus-6 same-line re-open does NOT discriminate (both latches agree at (2,2))
+PASS - T1 66 Part B's identity check calls outcome(corpus,'table') twice (the self-comparison this battery replaces)
+PASS - T2 the only two-quantity variant in 66 Part B is the FIRST-latch B3-class shape (no table-latch tq shape participates there)
+
+TOTAL: 30 checks, 0 FAILURES

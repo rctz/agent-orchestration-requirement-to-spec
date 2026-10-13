@@ -1,0 +1,17 @@
+selfcheck target: 16-spec-v16.md
+PASS S1 kind=spec 
+PASS S1 status DRAFT 
+PASS S1 requirements APPROVED cited 
+PASS S2 all REQ/NFR rows in matrix 
+PASS S3 D-01..D-59 all bound in coverage 
+PASS S4 catalog ids == §7.1 ids 
+PASS S5 all referenced T-ids defined 
+PASS S6 claim keywords outside QC 
+PASS S7 13-spec-design-probes.py exists 
+PASS S7 14-claim-keyword-check.py exists 
+PASS S7 probes cited in spec 
+PASS S8 scenario count >= 16 
+PASS S9 sections 1..12 in order 
+PASS S10 no APPROVED status in spec 
+
+TOTAL FAILURES: 0

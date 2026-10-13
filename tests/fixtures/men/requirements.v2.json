@@ -1,0 +1,212 @@
+{
+  "assumptions": [
+    {
+      "id": "A-01",
+      "text": "The todos table in SQLite may not yet have a done column; if missing, src/store.py adds it at startup with default false (now confirmed by decision D-03)."
+    },
+    {
+      "id": "A-02",
+      "text": "A successful PATCH returns HTTP 200 with the full updated todo JSON, matching common FastAPI CRUD style (now confirmed by decision D-02)."
+    },
+    {
+      "id": "A-03",
+      "text": "A 404 for an unknown id uses the same error body format as other error responses already produced by src/api.py (e.g., FastAPI's {\"detail\": ...})."
+    },
+    {
+      "id": "A-04",
+      "text": "New tests are added to tests/test_api.py using the same app/client setup that file already uses (e.g., FastAPI TestClient); no new test dependencies."
+    },
+    {
+      "id": "A-05",
+      "text": "Implementation uses only fastapi and the stdlib sqlite3 module; no new runtime dependencies are added."
+    },
+    {
+      "id": "A-06",
+      "text": "Existing todo records already carry an id and title; only the done flag changes, and the response keeps all existing fields."
+    },
+    {
+      "id": "A-07",
+      "text": "README.md documents endpoints in prose; adding one line for the new route fits the existing documentation style."
+    }
+  ],
+  "data": {
+    "entities": [
+      {
+        "fields": [
+          {
+            "name": "id",
+            "rules": "existing primary key; path parameter of the endpoint; 404 when no row matches",
+            "type": "integer"
+          },
+          {
+            "name": "title",
+            "rules": "existing field; unchanged by this endpoint",
+            "type": "string"
+          },
+          {
+            "name": "done",
+            "rules": "written by PATCH /todos/{id}/done: set from body {\"done\": bool} or flipped when the body is absent (D-01); if the column must be added, the migration is confined to src/store.py startup logic with default false (D-03)",
+            "type": "boolean"
+          }
+        ],
+        "name": "Todo"
+      }
+    ],
+    "formats": [
+      "Request body: JSON object {\"done\": <boolean>}, optional per D-01",
+      "Success response: HTTP 200 JSON with the full updated todo object, done reflecting the new value (per D-02)",
+      "Error responses: FastAPI default {\"detail\": ...} with status 404 (unknown id) or 422 (invalid body)"
+    ]
+  },
+  "decisions": [
+    {
+      "answer": "Optional body: when {\"done\": true|false} is present, set the flag to that value; when the body is absent, flip the current value.",
+      "id": "D-01",
+      "question_id": "Q-01",
+      "source": "user"
+    },
+    {
+      "answer": "200 with the full updated todo object, with done reflecting the new value.",
+      "id": "D-02",
+      "question_id": "Q-02",
+      "source": "user"
+    },
+    {
+      "answer": "Yes, add the column with default false, confined to src/store.py startup logic.",
+      "id": "D-03",
+      "question_id": "Q-03",
+      "source": "user"
+    }
+  ],
+  "glossary": [
+    {
+      "definition": "Boolean completion flag of a todo; false means open, true means completed.",
+      "term": "done"
+    },
+    {
+      "definition": "Changing done to the opposite of its current value (true -> false, false -> true); used when PATCH is called without a body (per D-01).",
+      "term": "toggle"
+    },
+    {
+      "definition": "A single item of the todo list persisted in SQLite via src/store.py and served by src/api.py.",
+      "term": "todo"
+    }
+  ],
+  "goal": "Add PATCH /todos/{id}/done to the FastAPI todo service so clients can set or toggle a todo's done flag, persist it in SQLite, and cover the behavior with pytest tests that fit the existing codebase conventions.",
+  "open_items": [
+    "Implementer must verify actual existing routes, todo serialization helper, and error response shapes in src/api.py before wiring the new route, since the scan could not show file contents."
+  ],
+  "project": "todo-api",
+  "requirements": [
+    {
+      "acceptance": [
+        "Given a stored todo with id=1 and done=false, When PATCH /todos/1/done is called with body {\"done\": true}, Then the response status is 200 and the response JSON has done=true (per D-01).",
+        "Given a stored todo with id=1 and done=true, When PATCH /todos/1/done is called with body {\"done\": false}, Then the response status is 200 and the response JSON has done=false (per D-01).",
+        "Given a stored todo with id=1 and done=false, When PATCH /todos/1/done is called with no body, Then the response status is 200 and the response JSON has done=true (toggle, per D-01).",
+        "Given a stored todo with id=1, title=\"task\", done=false, When PATCH /todos/1/done is called with {\"done\": true}, Then the response JSON contains id=1 and title=\"task\" unchanged plus done=true — the full updated object (per D-02)."
+      ],
+      "body": "In src/api.py, register a PATCH route /todos/{id}/done on the existing FastAPI app. When the request carries a JSON body {\"done\": <boolean>}, the endpoint sets the flag to that value; when no body is sent, it flips the current value (toggle) per D-01. It delegates reads/writes to src/store.py and responds 200 with the full updated todo object using the app's existing todo serialization, per D-02.",
+      "id": "REQ-001",
+      "kind": "functional",
+      "priority": "must",
+      "refs": [
+        "D-01",
+        "D-02",
+        "A-06"
+      ],
+      "title": "PATCH /todos/{id}/done sets or toggles the done flag"
+    },
+    {
+      "acceptance": [
+        "Given no todo with id=999 exists, When PATCH /todos/999/done is called with {\"done\": true}, Then the response status is 404 and the response body matches the error format used by other 404 responses in src/api.py (e.g., {\"detail\": ...}).",
+        "Given no todo with id=999 exists, When PATCH /todos/999/done is called, Then the todo list returned by the existing list/retrieval endpoint is unchanged."
+      ],
+      "body": "When PATCH /todos/{id}/done targets an id that does not exist, src/api.py responds 404 using the same error response format as the app's existing 404s, and src/store.py performs no write.",
+      "id": "REQ-002",
+      "kind": "functional",
+      "priority": "must",
+      "refs": [
+        "A-03"
+      ],
+      "title": "Unknown todo id returns 404 and changes nothing"
+    },
+    {
+      "acceptance": [
+        "Given a todo marked done=true via the endpoint, When the service process is stopped and started again with 'python -m src.main' and the todo is fetched, Then the fetched todo still has done=true.",
+        "Given a database whose todos table lacks a done column, When the service starts, Then src/store.py startup logic adds the column with default false for all rows (per D-03), and inspection of the change shows no other module contains schema-migration code."
+      ],
+      "body": "src/store.py persists the done flag in the existing SQLite database via the stdlib sqlite3 module. Per D-03, if the todos table lacks a done column, the migration (adding the column with default false) is confined to src/store.py startup logic; no other module performs schema changes.",
+      "id": "REQ-003",
+      "kind": "functional",
+      "priority": "must",
+      "refs": [
+        "D-03",
+        "A-05"
+      ],
+      "title": "done flag persists in SQLite via src/store.py"
+    },
+    {
+      "acceptance": [
+        "Given a stored todo, When PATCH /todos/{id}/done is called with {\"done\": \"yes\"} (non-boolean), Then the response status is 422 and a subsequent fetch shows done unchanged.",
+        "Given a stored todo, When PATCH /todos/{id}/done is called with a body that is not parseable JSON, Then the response status is 422 and done is unchanged."
+      ],
+      "body": "When the PATCH body is present but not a JSON object with a boolean done value (e.g., done is a string, or the body is not valid JSON), FastAPI's validation in src/api.py rejects it with 422 and no store write occurs.",
+      "id": "REQ-004",
+      "kind": "nonfunctional",
+      "priority": "must",
+      "refs": [
+        "D-01"
+      ],
+      "title": "Invalid request body is rejected with 422"
+    },
+    {
+      "acceptance": [
+        "Given the project at this change, When 'pytest' is run from the project root, Then pytest collects tests only from tests/ (per testpaths config) and exits 0 with all tests passing.",
+        "Given the contents of tests/, When they are searched, Then tests exist that at minimum cover: set done=true via body, set done=false via body, toggle with no body, 404 for unknown id, and 422 for a non-boolean done value.",
+        "Given the new tests, When they are compared with the existing tests in tests/test_api.py, Then they reuse the same app/client setup and follow the existing test_* naming style."
+      ],
+      "body": "New pytest tests are added under tests/ (extending tests/test_api.py, or a sibling test file if that matches the suite better) using the same app/client setup as the existing tests, and the whole suite passes with 'pytest'.",
+      "id": "REQ-005",
+      "kind": "functional",
+      "priority": "must",
+      "refs": [
+        "A-04"
+      ],
+      "title": "pytest suite covers the new endpoint"
+    },
+    {
+      "acceptance": [
+        "Given the updated README.md, When it is searched for 'PATCH /todos/{id}/done', Then a match exists together with a short description covering both the explicit set and the no-body toggle behavior."
+      ],
+      "body": "README.md, which currently documents the service's API, gains a short entry for PATCH /todos/{id}/done describing the set/toggle behavior, consistent with how existing endpoints are documented.",
+      "id": "REQ-006",
+      "kind": "nonfunctional",
+      "priority": "should",
+      "refs": [
+        "A-07"
+      ],
+      "title": "README documents the new endpoint"
+    }
+  ],
+  "scope": {
+    "in": [
+      "PATCH /todos/{id}/done route in src/api.py with set/toggle semantics for the done flag (D-01) returning 200 with the full updated todo (D-02)",
+      "Persistence of the done flag in SQLite through src/store.py, adding a done column with default false if missing, confined to store.py startup logic (D-03)",
+      "pytest tests in tests/ (extend tests/test_api.py) covering set, toggle, 404, and 422 cases",
+      "One-line README.md note documenting the new endpoint"
+    ],
+    "out": [
+      "Any new endpoints or fields beyond the done flag (no bulk updates, no due dates, no tags)",
+      "Changes to existing endpoints or their response shapes",
+      "New runtime dependencies beyond fastapi and uvicorn",
+      "Authentication, authorization, or rate limiting",
+      "Migrating storage away from stdlib sqlite3"
+    ]
+  },
+  "size": "S",
+  "users": [
+    "API clients of the todo service (e.g., curl, scripts, frontends) that mark todos done or undone",
+    "Developers/maintainers who run the pytest suite to verify the change"
+  ],
+  "version": 2
+}

@@ -1,0 +1,750 @@
+# Requirements — csv2json
+
+| field | value |
+|---|---|
+| project | i-need-a-small-command-line-tool-csv2js |
+| kind | requirements |
+| version | v6 |
+| status | DEPRECATED |
+| date | 2026-09-16 |
+| author | req2-req-designer |
+| intake | appendix/00-intake.md |
+| user decisions | appendix/01-user-decisions.md (round 1, 2026-09-16 17:38; round 2, 2026-09-16 17:53) |
+| review folded | appendix/04-review-req-c1.md (req-review cycle 1, FAIL: F-01..F-12; folded as D-18..D-23); appendix/06-review-req-c2.md (req-review cycle 2, FAIL: F-13..F-20; folded as D-24..D-27 and editorial folds); appendix/07-review-req-c3.md (req-review cycle 3, FAIL: F-21..F-27; folded as D-28..D-32 and editorial folds) |
+
+Note on names: the project slug `i-need-a-small-command-line-tool-csv2js` is
+the board/workspace name (F-09); the tool and this document are `csv2json`.
+
+## 1. Goal & success condition
+
+**Goal.** Provide a small, dependency-free command-line tool `csv2json` that
+converts a CSV file with a header row into a JSON array of objects, one object
+per data row, keyed by the header names. All field values are carried through
+losslessly as JSON strings, in compact JSON, with silent success.
+
+**Success condition.** A user runs
+`python csv2json.py input.csv output.json`;
+`output.json` contains a valid, COMPACT (single-line, no indentation) JSON
+array in which each element maps header names to that row's field values as
+JSON strings — `"42"` stays `"42"`, an empty cell becomes `""` (never `null`);
+non-ASCII text appears as raw UTF-8 characters, never `\uXXXX` escapes
+(Q-06 → D-17); rows with a field count different from the header produce a
+clear error naming
+the line number, and the tool exits with a non-zero status; a successful run
+prints nothing to stdout; no third-party packages are required.
+
+**Source requirement (verbatim, from appendix/00-intake.md):**
+
+> I need a small command-line tool: csv2json. It reads a CSV file (with a header row), converts each data row into a JSON object keyed by the header names, and writes the result as a JSON array to an output file. Must handle quoted fields containing commas, and report a clear error (with line number) when a row has a different number of fields than the header. Single-file Python script, stdlib only, run as: python csv2json.py input.csv output.json
+
+## 2. Users and roles
+
+| role | description |
+|---|---|
+| end user | A developer or technical operator who runs the script from a terminal. No admin role, no service account, no multi-tenant aspect. |
+
+Single-user, single-invocation CLI. No authentication, no authorization, no
+roles beyond "whoever can execute the script".
+
+## 3. Scope
+
+### 3.1 In scope
+
+- Reading one UTF-8 text CSV file given as the first CLI argument, with a
+  header row as its first row. Non-UTF-8 bytes are an error (REQ-011,
+  user decision Q-04 → D-13); a leading UTF-8 BOM is stripped (REQ-012,
+  user decision Q-05 → D-16).
+- CSV parsing in the Python stdlib `csv` module **default dialect** — the
+  operative definition, anchored once here and referred to everywhere as
+  "the stdlib default dialect" (F-12): delimiter `,`, quote `"`, doubled
+  quote `""` as the only escape, CRLF/CR/LF all treated as row terminators.
+  RFC 4180 is approximated by this dialect, not guaranteed by it; wherever
+  they disagree (blank lines, unclosed quotes), THIS document specifies the
+  dialect's actual behavior (REQ-009, REQ-013). Quoted fields, embedded
+  commas, embedded quotes (doubled), and embedded newlines inside quoted
+  fields are handled per the dialect.
+- Decode→parse handoff (D-24, normative — review F-13): after the whole-file
+  strict UTF-8 decode (D-15 step 3), the decoded text MUST be handed to
+  `csv.reader` with `newline=''` semantics (e.g.
+  `csv.reader(io.StringIO(text, newline=""))`): no newline translation or
+  line splitting may occur between decode and parse. Universal-newline
+  translation is FORBIDDEN as a lossy rewrite of quoted-field data: with
+  default/universal newlines the stdlib silently converts a CRLF or CR
+  inside a quoted field to LF (verified live: input `"x\r\ny"` yields
+  field value `x\ny`), violating the lossless contract (Q-01 → D-11,
+  REQ-005); without newline normalization at all (plain
+  `io.StringIO(text)`), a CR-only file crashes with an unclassified
+  `_csv.Error`. With `newline=''` semantics all three of §3.1 (CR/CRLF/LF
+  terminators), REQ-004 (newlines in quoted fields) and REQ-005
+  (losslessness) hold simultaneously (verified live on Python 3.13.5:
+  `a,b\rc,d\r` → 2 rows; `"x\r\ny"` → `x\r\ny`; `"x\ry"` → `x\ry`).
+- Converting every data row to a JSON object keyed by header names; writing
+  the array to the output file given as the second CLI argument.
+- Field-count validation of every data row against the header, with a clear
+  error message including the input line number.
+- Meaningful exit codes (0 success, non-zero on failure) and error output on
+  stderr.
+
+### 3.2 Explicitly out of scope
+
+- Type inference / type conversion: RESOLVED as "all strings" by the user
+  (Q-01 → D-11); regardless, no user-defined type mapping exists.
+- Any Graphical or web UI; the tool is CLI-only.
+- Configuration files, environment-variable configuration, or named options
+  beyond the two positional arguments.
+- Streaming/incremental output for files that do not fit in memory (see
+  NFR-003 for the chosen size envelope).
+- CSV dialect auto-detection beyond the stdlib default (sniffing semicolon or
+  tab dialects is not offered).
+- Reading input from stdin or writing output to stdout.
+- Pretty-printed / human-formatted JSON output: the user fixed the output
+  shape as compact (Q-02 → D-11b); no formatting options are offered.
+- Deduplication, sorting, filtering, or any transformation other than the
+  row→object mapping.
+- Windows-specific line-ending and code-page handling beyond the pinned
+  contracts of §3.1 (the `newline=''` decode→parse handoff, D-24) and
+  §5.2 (strict UTF-8, REQ-011) — recorded as D-08 (relabeled DECIDED in
+  v5; review F-16).
+
+## 4. Functional requirements
+
+Requirement IDs are `REQ-nnn` (kept stable across revisions; REQ-013 was
+added in v4 — F-04 — and REQ-014 in v5 — F-13 — with no renumbering). Each has
+acceptance criteria concrete enough to test. All questions (Q-01..Q-04 in
+round 1, Q-05..Q-06 in round 2) are answered; see §7 and
+appendix/01-user-decisions.md.
+
+### 4.1 Core conversion
+
+**REQ-001 — CLI invocation form.**
+The tool is a single Python file `csv2json.py`, executed as:
+`python csv2json.py <input.csv> <output.json>`
+Exactly two positional arguments, in that order (input first, output second).
+*Acceptance:* running the command above with a valid input produces the output
+file; running with zero, one, or three arguments fails with a usage message on
+stderr and a non-zero exit code, and no output file is created. The usage
+message is an error message like any other: it carries the fixed
+`csv2json: error:` prefix (REQ-007 (a) applies to ALL error classes —
+F-05), e.g. `csv2json: error: usage: csv2json.py <input.csv> <output.json>`.
+
+**REQ-002 — header row defines keys.**
+The first row of the CSV is always a header row; its fields, in order, are the
+keys of every output object. Header fields are used verbatim (no trimming,
+renaming, or case-folding). The header must contain at least one field: a
+first parsed row of 0 fields is the invalid-header error of REQ-009 (it
+would key every output object with nothing).
+Duplicate header names are an error (user decision Q-03 → D-12): if any header
+field value equals an earlier header field value, the tool fails per REQ-007
+shape with line 1 and the duplicate name, e.g.
+`csv2json: error: input.csv line 1: duplicate header name 'id'`.
+*Acceptance:* for input whose first row is `id,name`, every output object has
+exactly the keys `id` and `name`, in that insertion order; for header
+`id,name,id` the run exits 1 with the duplicate-name error above and no output
+file is created (REQ-010).
+
+**REQ-003 — one object per data row.**
+Each data row becomes one JSON object mapping each header key to the value of
+the field at the same position. The output file contains a single JSON array
+of these objects in input row order.
+*Acceptance:* a 3-row CSV (plus header) yields a JSON array of exactly 3
+objects in the same order.
+
+**REQ-004 — quoted fields.**
+Parsing handles quoted fields containing commas, escaped/doubled quotes
+(`""` inside a quoted field), and newlines inside quoted fields, per the
+stdlib default dialect (§3.1 — the operative definition; F-12).
+*Acceptance:* a row `"a,b",c` parses to two fields `a,b` and `c`; a field
+`"say ""hi"""` parses to `say "hi"`; a quoted field spanning two physical
+lines parses as one field. Newlines inside quoted fields are preserved
+BYTE-EXACTLY (D-24 handoff, review F-13): a field `"x\r\ny"` parses to the
+value `x\r\ny` (CRLF kept; NOT rewritten to `x\ny` — the universal-newline
+rewrite is a non-conforming implementation), and a field `"x\ry"` keeps its
+bare CR. For the unterminated-quote case at end of input see REQ-013.
+
+**REQ-005 — value mapping (strings only, lossless).**
+Every field value appears in the JSON object exactly as a string — never as a
+number, boolean, or null (user decision Q-01 → D-11). Empty cells become the
+empty string `""`, never `null`. The mapping is lossless: leading zeros
+(`"007"`), numeric-looking text (`"42"`, `"3.14"`), and boolean-looking text
+(`"true"`) are preserved verbatim as strings.
+*Acceptance:* CSV row `42,3.14,true,` produces JSON values
+`"42"`, `"3.14"`, `"true"`, `""` (empty string, not null); row `007,`
+produces `"007"`, `""`; no output value has a JSON type other than string.
+
+### 4.2 Validation & error handling
+
+**REQ-006 — field-count validation.**
+Every data row must have exactly the same number of fields as the header row.
+A row with fewer or more fields is an error.
+*Acceptance:* header of 3 columns; a data row with 2 or with 4 fields each
+cause the run to fail per REQ-008.
+
+**REQ-007 — error message content.**
+Every error message the tool can print — including usage/argument errors
+and unreadable/unwritable-file errors, not only field-count and
+duplicate-header errors — follows this shape (F-05):
+(a) starts with the fixed prefix `csv2json: error:`,
+(b) names the input file,
+(c) gives the 1-based physical line number, on the counting basis of D-28
+(glossary "physical line": line breaks are exactly `\n`, `\r\n` — one
+break — or `\r`, in the decoded text), in the
+input file where the offending row starts, and (d) gives the expected vs.
+actual field counts. Example shape:
+`csv2json: error: input.csv line 4: expected 3 fields, found 2`
+For rows containing embedded newlines, the reported number is the line where
+the row *starts* (F-26: the v4→v5 edit dropped the subject; restored).
+(b)–(d) apply where they make sense for the error class
+(a usage error has no line number; an unwritable-output error names the
+output path); (a) applies to ALL error classes without exception.
+Any residual parse-time exception the stdlib can still raise after the
+specific classes above (e.g. an unexpected `_csv.Error`) is part of this
+contract (D-24, review F-13): it is reported per this shape — `csv2json:`
+`error:` prefix, input file named, stderr, exit 1, no output file
+(REQ-010) — and NEVER escapes as an unhandled traceback.
+*Acceptance:* a test file with a short row on physical line 4 yields exactly
+that message on stderr (numbers match the physical file lines, not logical
+row indexes).
+
+**REQ-008 — fail-fast behavior.**
+The tool stops at the FIRST invalid row, writes nothing to the output file
+(see REQ-010), prints the REQ-007 message to stderr, and exits with code 1.
+*Acceptance:* a file with two bad rows reports only the first one; output
+file is absent or unchanged after the failed run.
+
+**REQ-009 — empty / edge rows.**
+- A file containing ONLY a header row produces `[]` and exits 0.
+- A completely empty file — zero bytes, or no bytes other than a leading
+  UTF-8 BOM (REQ-012 strips the BOM first, so the parser sees the empty
+  string in both cases; F-25, D-31), no header at all — is an error:
+  `csv2json: error: input.csv: file is empty (no header row)`, exit 1.
+- A file whose FIRST parsed row is a 0-field row — e.g. a file containing
+  ONLY blank physical lines (verified live: `csv.reader` on `"\n\n"` yields
+  `[[], []]`), or a blank first line before any data — has no valid header:
+  the header row must contain at least one field (a 0-field header would
+  key every output object with nothing). This is an error with its own
+  message, NOT the zero-byte empty-file error above and NOT a count
+  comparison against a nonexistent header:
+  `csv2json: error: input.csv line 1: invalid header row (found 0 fields)`,
+  exit 1, no output file (REQ-010). (F-17 cross-reference: the blank-line
+  error BELOW also reports `found 0` — same count, different error class:
+  a 0-field FIRST parsed row is the invalid-header error here; a 0-field
+  row AFTER the header is an ordinary REQ-006 wrong-field-count error
+  reported per REQ-007.)
+- Blank physical lines use the stdlib default dialect's row model (verified
+  live, Python 3.13.5): a blank physical line parses as a **0-field row**
+  (`[]`), never a 1-field row. It is therefore an ordinary wrong-field-count
+  error per REQ-006, reported per REQ-007 with the count actually found
+  (e.g. `... found 0`). (F-01: the v3 text wrongly modeled blank lines as
+  `['']`.)
+- Trailing newline discipline: exactly ONE terminator (`\n`, `\r\n`, or
+  `\r`) after the last record is normal and produces no extra row; any
+  further blank physical line — INCLUDING a trailing one (file ends
+  `...\n\n`) — is the 0-field wrong-field-count error above, reported at
+  that line number.
+*Acceptance:* each of the five cases behaves as stated; in particular, a
+1-column file `a\n\n1\n` FAILS at line 2 (`expected 1 fields, found 0`),
+a 3-column file `a,b,c\n1,2,3\n\n` fails at line 3
+(`expected 3 fields, found 0`), and a file of only blank lines `\n\n`
+fails with the invalid-header error at line 1; the BOM-only file
+(EF BB BF, 3 bytes; F-25/D-31 AC) fails with
+`csv2json: error: input.csv: file is empty (no header row)` — the
+zero-byte message — and NOT the line-1 invalid-header message.
+
+**REQ-010 — output file safety.**
+On any error (bad arguments, unreadable input, parse error, validation error)
+the tool must NOT create or truncate the output file. The output file is
+written only after the whole input has been parsed and validated
+successfully. If the output path is not writable, the tool exits 1 with a
+clear `csv2json: error:` message.
+*Acceptance:* run on an invalid CSV with a fresh output path → no output file
+exists afterwards; run with an output path inside a non-writable directory →
+exit 1 with a clear message.
+
+**REQ-011 — strict UTF-8 input (user decision Q-04 → D-13).**
+The input file is decoded as UTF-8, strictly. If the input contains bytes that
+are not valid UTF-8 (e.g. Excel cp1252 or Windows-874 exports), the tool fails
+BEFORE writing any output, with a clear `csv2json: error:` message naming the
+input file, stating the byte sequence is not valid UTF-8, and giving the
+1-based physical line number of the offending byte (F-06: the location form
+is pinned as a 1-based line number, consistent with REQ-007; it is
+"approximate" only in the ordinary sense that one line may contain several
+bytes). The cited line number uses the D-28 counting basis (F-21): on a
+CR-only file the CRs each end a physical line — `a,b\rc,d\rc\r\xff` is
+cited at `line 4`, not `line 1` (an LF-only counter would see no `\n` and
+misreport line 1). Exits 1, no output file (REQ-010).
+Lossy conversion (replacing undecodable bytes with U+FFFD or `?`) is
+forbidden: the tool NEVER silently mangles text.
+*Acceptance:* a file containing the single invalid byte sequence `0xFF` yields
+an error message on stderr containing the input filename, the text "not valid
+UTF-8" (or equivalent clear wording), and a `line N` reference (exit code 1,
+no output file per REQ-010); the CR-only file `a,b\rc,d\rc\r\xff` is cited
+at `line 4` exactly (D-28 basis; F-21 acceptance); an ASCII file and a UTF-8
+file containing Thai
+text (`ประเทศไทย`)
+both convert successfully with the text intact in the JSON output.
+
+**REQ-012 — UTF-8 BOM on input (user decision Q-05 → D-16).**
+A leading UTF-8 byte-order mark (EF BB BF) is valid UTF-8, so REQ-011 does
+not by itself decide its fate. The user decided: the BOM is STRIPPED from
+the first header field, so keys come out clean — `id`, not `\ufeffid`
+(user answer Q-05 (a), 2026-09-16 17:53). Only a BOM at the very start of
+the file is removed; a U+FEFF appearing anywhere else in the input is data
+and is carried through per REQ-005/D-14.
+*Acceptance:* a valid CSV prefixed with a UTF-8 BOM whose header is
+`id,name` produces objects keyed `id`, `name` (first key does NOT start
+with U+FEFF), exit 0; the same file without the BOM produces
+byte-identical output; a U+FEFF inside a cell (not at file start) is
+preserved verbatim in the output string; a file consisting ONLY of the
+BOM (3 bytes) decodes, is stripped to the empty string, and then fails
+per REQ-009's empty-file error (F-25/D-31), exit 1, no output file.
+
+**REQ-013 — unterminated quoted field at end of input (F-04, D-19; F-14, D-25; F-22/F-23/F-24, D-29/D-30).**
+If the input ends while a quoted field is still open — per the §3.1 dialect
+(F-24, D-30): a quoted section opens ONLY where a field STARTS with `"` and
+a `"` appearing anywhere else in an unquoted field is ordinary data — the
+tool treats this as a structural error. The detection applies to the ENTIRE
+input, INCLUDING the header row (D-25, review F-14) — that is, no row is
+exempt from the check; it does NOT mean a whole-input pre-pass runs before
+row validation (F-22, D-29: detection is a property of the per-row pass,
+not a separate scanning stage). A file whose header row ends with an
+unclosed quote — e.g. the single line `"id,name` — is the same structural
+error, cited at line 1 (typical causes: truncated transfer, editor
+accident). The lenient stdlib parse of that input yields the
+valid-looking 1-field header `['id,name']` (verified live): no duplicate
+check trips, no count check applies to the header, no data rows exist —
+accepting it would exit 0 with output `[]`, silently accepting truncated
+input with the first header key mangled, exactly what this requirement's
+rationale forbids. Rationale: the stdlib default dialect is lenient here
+(verified live: `csv.reader` returns the partial field content as a
+complete row, e.g. `id,name\n"1,2` → `['1,2']`; `"id,name` →
+`[['id,name']]`), and silently accepting truncated input would violate the
+tool's contract of never mangling or inventing data (REQ-011 preamble,
+D-11). The tool therefore detects unterminated quotes during the sequential
+validation pass (SCOPE: over the whole decoded input, header row included,
+per D-25 — not a pre-PASS: F-22/D-29 fix the ordering so that when a
+field-count-bad row precedes the row containing the unterminated quote, the
+count error at the earlier row WINS, e.g. `id,name\n1\n"2,3` fails with the
+REQ-007 count error at line 2, not the quote error at line 3) and reports,
+per the REQ-007 shape:
+
+`csv2json: error: input.csv line 2: unterminated quoted field (opened at
+line 2)`
+
+- the message carries TWO line numbers, both on the D-28 counting basis
+  (F-23, D-30): **N**, the cited line, is the physical line where the
+  offending ROW starts (REQ-007(c)'s row-start convention); **M**, the
+  "opened at" line, is the physical line where the unterminated field's
+  opening quote character sits. N == M when no earlier field of the row
+  contains a line break — in particular always when the unterminated field
+  is the row's first field (its opening quote is the row's first
+  character); N < M when earlier fields' content contains line breaks,
+  e.g. the row
+  `h1,h2\n"a\nb",c,"d\ne` (one row starting at line 2 whose third field
+  opens at line 3 and never closes) reports
+  `csv2json: error: input.csv line 2: unterminated quoted field (opened at
+line 3)`;
+- the failure follows the full error contract: `csv2json: error:` prefix,
+  stderr, exit 1, no output file (REQ-010), fail-fast precedence slot (6)
+  in D-15, i.e. detected during row validation;
+- this is a deliberate tightening over dialect leniency: a quote opened
+  but never closed is an error EVEN IF the lenient parse would produce a
+  field-count-valid row (the 1-column case `a\n"1` → `['1']` must error,
+  not silently convert), and EVEN IF the unclosed field is the header row
+  (`"id,name` must error, not convert to `[]`).
+*Acceptance:* `id,name\n"1,2` (no closing quote) exits 1 with the message
+above (line 2), no output file; `a\n"1` (1-column, lenient parse would be
+a "valid" row) ALSO exits 1 with the same message shape at line 2;
+`"id,name` (unclosed quote in the header line, file ends) exits 1 with
+`csv2json: error: input.csv line 1: unterminated quoted field (opened at
+line 1)`, no output file — NOT the `[]`/exit-0 outcome; `a,b\n1,2\n"x,y",2\n`
+(properly closed multi-line quote) converts normally, exit 0;
+`id,name\n1\n"2,3` (count-bad row BEFORE the unterminated quote; F-22/D-29
+ordering AC) exits 1 with the REQ-007 count error at line 2
+(`expected 2 fields, found 1`) — NOT the quote error at line 3;
+`h1,h2\n"a\nb",c,"d\ne` (non-first unterminated field; F-23/D-30 AC) exits
+1 with exactly `csv2json: error: input.csv line 2: unterminated quoted
+field (opened at line 3)` (N = row start, M = opening-quote line), no
+output file; `desc,qty\n5" ruler,2\n` (quote character inside an UNQUOTED
+field — data, never a quote opening; F-24/D-30 negative AC) converts
+normally to `[{"desc":"5\" ruler","qty":"2"}]`, exit 0 — a build that
+rejects it as "unterminated" is NON-CONFORMING.
+
+**REQ-014 — decode→parse handoff: `newline=''` semantics (F-13, D-24).**
+Between the whole-file strict UTF-8 decode (D-15 step 3, REQ-011) and
+`csv.reader`, no newline translation, splitting, or reconstruction of the
+text may occur: the decoded string MUST be handed to the parser with
+`newline=''` semantics (e.g. `csv.reader(io.StringIO(text, newline=""))`).
+This is the only stdlib construction under which all of the following hold
+simultaneously (verified live on Python 3.13.5,
+appendix/05-review-req-c2-probes.py batch 2):
+- CR, CRLF, and LF each terminate rows (§3.1): a CR-only file
+  `a,b\rc,d\r` parses as two rows — the plain `io.StringIO(text)`
+  construction instead crashes with `_csv.Error: new-line character seen
+  in unquoted field`, an unclassified crash on input §3.1 declares valid;
+- newlines INSIDE quoted fields are preserved byte-exactly (REQ-004,
+  REQ-005, Q-01 → D-11): `"x\r\ny"` → `x\r\ny` and `"x\ry"` → `x\ry` —
+  every universal-newline construction (`newline=None`,
+  `str.splitlines()` reconstructions) silently rewrites these to
+  `x\ny`, a lossy mangle of user data violating the lossless contract.
+Universal-newline translation anywhere in the pipeline is therefore
+FORBIDDEN. Any parse-time exception that remains possible after this pin
+is absorbed by the REQ-007 error contract (prefix, input file named,
+stderr, exit 1, no output file per REQ-010) — never an unhandled
+traceback.
+*Acceptance:* the CR-only file `h,k\rc,d\r` converts to
+`[{"h":"c","k":"d"}]`, exit 0; the file `h,k\n"x\r\ny",2\n` converts to
+an object whose `h` value is `x\r\ny` (appearing in the output file as the
+JSON escape sequence `"x\r\ny"`, §5.2 short forms), exit 0 — a build that
+produces `x\ny` there is NON-CONFORMING; the file `h,k\n"x\ry",2\r`
+converts with `h` = `x\ry`, exit 0.
+
+## 5. Data & integrations
+
+### 5.1 Entities & meaning
+
+| entity | meaning | ownership |
+|---|---|---|
+| Input CSV | A text file whose first row is the header; subsequent rows are data rows. Owned by the user; the tool only reads it. | user |
+| Header row | The first parsed row. Its field values, in order, are the object keys of the output. Used verbatim. | user (content), tool (interpretation) |
+| Data row | Every parsed row after the header. Must have exactly `len(header)` fields. | user (content), tool (interpretation) |
+| Field value | The string content of one CSV cell after quote processing. Meaning is whatever the user's data means; the tool assigns no semantics. | user |
+| Output JSON | A JSON array of flat objects (no nesting ever produced). Written by the tool; if the file pre-exists, a successful run REPLACES it entirely. | tool (writes), user (owns destination) |
+
+### 5.2 Formats
+
+- Input: CSV in the **stdlib default dialect** (F-10/F-12: the operative
+  definition, §3.1) — delimiter `,`, quote `"`, doubled quote `""` as the
+  only escape. No custom delimiters (out of scope, §3.2).
+- Output: a single COMPACT JSON document (UTF-8, no BOM, no indentation, no
+  trailing whitespace), terminated by exactly ONE trailing newline after
+  the closing `]` (F-19: fixed as a MUST, not left as a permissive
+  "allowed" — POSIX text-file convention; the output file ends `]\n`),
+  per user decision Q-02 → D-11b. Compact is contractual: it
+  changes the bytes of every successful run's output, so it is fixed here, not
+  left to the implementor. COMPACT REQUIRES EXPLICIT SEPARATORS (F-20,
+  verified live on Python 3.13.5, appendix/05c-separators-probe.py): the
+  `json.dumps` DEFAULT separators are `", "`/`": "` (a space after every
+  comma), so the serializer call MUST pass `separators=(",", ":")`
+  explicitly — e.g. `json.dumps(rows, ensure_ascii=False,
+  separators=(",", ":"))` — to produce the glossary's compact bytes;
+  followed with defaults it yields non-compact output violating Q-02.
+  Non-ASCII characters are written as RAW UTF-8, not
+  `\uXXXX` escapes (user decision Q-06 → D-17, `ensure_ascii=False`): a cell
+  containing Thai `ประเทศไทย` appears in the output file as those actual
+  characters.
+- Output escape contract (D-14 as corrected by F-02): the serializer is
+  `json.dumps(..., ensure_ascii=False)`, and the ONLY escapes it emits are
+  - short two-char escapes where the JSON grammar provides them:
+    `\f` (0x0C), `\b` (0x08), `\n` (0x0A), `\r` (0x0D), `\t` (0x09),
+    `\"`, `\\`;
+  - `\u00XX` (lowercase hex) for control characters WITHOUT a short form,
+    e.g. NUL → `\u0000`, vertical tab 0x0B → `\u000b`;
+  - everything else — including DEL 0x7F and the line separators
+    U+2028/U+2029 — passes through RAW.
+  Verified live on Python 3.13.5: form feed 0x0C serializes as the 2-char
+  escape `\f` (v3's `\u000c` example was byte-wrong — F-02).
+- Encoding: strict UTF-8 input per REQ-011 (user decision Q-04 → D-13);
+  non-UTF-8 bytes are an error, never lossy-converted. A leading UTF-8 BOM
+  is stripped per REQ-012 (user decision Q-05 → D-16).
+
+## 6. Non-functional requirements
+
+**NFR-001 — zero dependencies.**
+The tool runs with the Python standard library only. No pip installs, no
+third-party imports, no build step.
+*Acceptance:* `grep` of the script shows imports only from the stdlib; the
+tool runs on a bare Python installation.
+
+**NFR-002 — target runtime.**
+Python 3.9 or newer. The floor is a CONTRACT, not a freedom (F-07: v3's
+"exact floor is implementor freedom" clause is deleted — it contradicted
+the acceptance criterion below; register D-07 updated accordingly):
+observable behavior must be identical on every supported version.
+*Acceptance:* the script imports and runs on Python 3.9.
+
+**NFR-003 — performance envelope.**
+A 50 MB CSV (~250k rows) converts in under 30 seconds and under 1 GB RAM on a
+typical laptop. In-memory processing is acceptable below this envelope;
+larger files are out of scope (§3.2).
+*Acceptance:* documented test with a generated 50 MB file completes within
+the limits (spot check, not a hard gate).
+
+**NFR-004 — error channel discipline.**
+All errors go to stderr; only genuine results (if any) go to stdout. A
+successful run prints NOTHING to stdout (silent success — user decision
+Q-02 → D-11b).
+*Acceptance:* successful run → empty stdout; failed run → REQ-007 message on
+stderr, exit 1.
+
+**NFR-005 — robustness against malicious/pathological input.**
+The tool never executes, evaluates, or interpolates input content; field
+values are data only. JSON output must always be valid JSON with proper
+escaping (via the stdlib `json` module, §5.2 escape contract). A row of any
+size (up to available memory) is processed without crashing the interpreter.
+To make memory — not an arbitrary constant — the bound, the tool MUST raise
+the csv module's per-field size limit at startup to the largest value the
+running interpreter accepts — e.g. `csv.field_size_limit(sys.maxsize)`,
+degrading the requested value on OverflowError (F-15: the limit setter
+accepts only values that fit the interpreter's C-integer binding, which
+can be narrower than `sys.maxsize` on some builds; verified live,
+`csv.field_size_limit(2**64)` raises `OverflowError: Python int too large
+to convert to C ssize_t` — and an unhandled OverflowError at startup would
+violate REQ-007's all-errors contract)
+(F-03: the stdlib
+default limit is 131072 bytes per field — verified live — and raises
+`_csv.Error("field larger than field limit")` for larger fields
+regardless of available memory, which would fail NFR-005's own 10 MB
+example). If memory is genuinely exhausted, the tool fails per the error
+contract: `csv2json: error:` message naming the problem (e.g.
+`csv2json: error: out of memory reading input.csv`), exit 1, no output
+file (REQ-010).
+*Acceptance:* input containing `<script>` sequences, a 10 MB single field,
+and a single row totalling 10 MB spread across many fields — output stays
+valid JSON, exit code reflects
+validity of the CSV structure only, and none of them trips the 131072-byte
+default field limit.
+
+## 7. Decisions log
+
+Live status is maintained in appendix/03-decision-register.md (machine-parsed).
+
+### 7.1 Round-1 user answers (closed 2026-09-16)
+
+All four open questions were answered by the user. Answers below are VERBATIM
+from appendix/01-user-decisions.md (round 1, 2026-09-16 17:38):
+
+> Q-01: (a) all values as strings, lossless. Empty cell stays empty string,
+> not null. Q-02: (a) compact JSON, silent stdout on success. Q-03: (a) error
+> out on duplicate header names, with line number 1. Q-04: (a) fail with a
+> clear error on non-UTF-8 input, never lossy conversion.
+
+| Q | topic | answer | where it landed |
+|---|---|---|---|
+| Q-01 | value types: strings vs. inferred numbers/booleans/null | (a) all strings, lossless; empty cell = `""`, never null | REQ-005, D-11 |
+| Q-02 | output shape & success noise | (a) compact JSON, silent stdout on success | §1, §5.2, REQ-005, NFR-004, D-11b |
+| Q-03 | duplicate header names policy | (a) error out, citing line 1 and the duplicate name | REQ-002, D-12 |
+| Q-04 | non-UTF-8 input handling | (a) fail with a clear error, never lossy conversion | REQ-011, D-13 |
+
+### 7.2 Points opened by the round-1 answers
+
+Settling Q-01..Q-04 sharpens four points. Two are user-owned (they change
+observable bytes/behavior of every run) and were asked as Q-05, Q-06 in
+round 2; both are now ANSWERED (2026-09-16 17:53). The remaining two are
+designer-owned contract details, decided in v2 as D-14, D-15:
+
+> Q-05: (a) strip the leading UTF-8 BOM so header keys come out clean (id,
+> not \ufeffid). Q-06: (a) raw UTF-8 output, ensure_ascii=False — keep real
+> Thai characters in the JSON file.
+
+(Verbatim from appendix/01-user-decisions.md, round 2, 2026-09-16 17:53.)
+
+| Q | topic | why it matters | owner | status |
+|---|---|---|---|---|
+| Q-05 | UTF-8 BOM handling on input | a BOM is valid UTF-8, so Q-04's strictness does not decide it; keeping U+FEFF inside the first header key vs. stripping it changes every output object of BOM-prefixed files | user | ANSWERED: (a) strip → D-16 |
+| Q-06 | non-ASCII output escaping (`ensure_ascii`) | changes the BYTES of every successful run containing non-ASCII text: Thai `ประเทศไทย` written as raw UTF-8 vs. as `\u0e1b\u0e23...` escapes — both are valid, compact JSON, but not byte-identical; the user's Q-02 answer fixed compactness only, not escaping | user | ANSWERED: (a) raw UTF-8 → D-17 |
+
+Designer decisions closing the remaining consequence points (from v2,
+with D-14 corrected in v4):
+
+- **D-14 — exotic control characters are data.** Bytes that decode as valid
+  UTF-8 control characters (NUL 0x00, form feed 0x0C, vertical tab 0x0B) in a
+  cell are accepted and carried through, JSON-escaped, in the output. They
+  are never treated as row separators or errors. The EXACT escaped forms are
+  pinned by the §5.2 escape contract, which supersedes the escape examples
+  given here in v3 (F-02: form feed serializes as the 2-char escape `\f`,
+  NOT `\u000c`; NUL as `\u0000`; vertical tab as `\u000b`; short forms
+  wherever the JSON grammar provides them).
+  Rationale: per D-05/NFR-005 field content is data with no semantics, the
+  stdlib `json` module escapes them to valid JSON, and this is the lossless
+  behavior Q-01 mandates. (REQ-005/NFR-005 already imply this; recorded here
+  to make it explicit and testable.)
+- **D-15 — error precedence.** The tool validates in this fixed order and
+  reports only the FIRST failure: (1) argument count (REQ-001); (2) input
+  file readable; (3) whole-file strict UTF-8 decode (REQ-011 — before any
+  parsing, because bytes must be decoded to parse); (3b) decode→parse
+  handoff with `newline=''` semantics (REQ-014, v5 — D-24: a pipeline
+  property, listed here to show it sits between decode and parse, before
+  any row is inspected); (4) empty file / invalid header — 0-field first
+  row (REQ-009; F-18: slot names both error classes — a zero-byte file is
+  the "file is empty" error, a 0-field first row the "invalid header row"
+  error, both ahead of duplicate-header, which a 0-field header can never
+  contain); (5) duplicate header names (REQ-002, line 1); (6) first
+  structurally bad data row (REQ-006/007/008, fail-fast) — including
+  unterminated-quote detection DURING that same sequential pass, with SCOPE
+  over the ENTIRE input including the header per REQ-013 (v4, extended
+  v5/F-14; F-22/D-29: NOT a whole-input pre-pass — when a count-bad row
+  precedes the unterminated-quote row, the count error at the earlier row
+  wins; each case is detected when its row is reached: line 1 when the
+  header quote is the unterminated one) and 0-field blank-line
+  rows (v4 REQ-009); (7) output write (REQ-010 — output
+  path writability is naturally discovered last, after the input is fully
+  validated, preserving REQ-010's no-output-on-error guarantee). A file with
+  both invalid bytes and structural errors therefore reports the UTF-8 error.
+
+Cycle-2 review decisions (v5, from appendix/06-review-req-c2.md; all
+findings `needs-user:false`, none contradicts a user decision):
+
+- **D-24 — decode→parse handoff is `newline=''` semantics (F-13, REQ-014).**
+  After the whole-file decode, the text reaches `csv.reader` with
+  `newline=''` semantics; no newline translation or splitting in between;
+  universal-newline translation is FORBIDDEN (it silently rewrites CRLF/CR
+  inside quoted fields to LF, violating Q-01/D-11 losslessness); residual
+  `_csv.Error` classes map onto the REQ-007 error contract.
+- **D-25 — unterminated-quote detection covers the whole input, header
+  included (F-14, REQ-013).** An unclosed quote in the header row is the
+  same structural error (`"id,name` → exit 1 at line 1), never the
+  `[]`/exit-0 outcome of the lenient parse; the rationale "never accept
+  truncated input" applies to the first line as much as to data rows.
+- **D-26 — compact output requires explicit `separators=(",", ":")`, and
+  the output file ends with exactly ONE trailing newline (F-20 + F-19,
+  §5.2).** The `json.dumps` defaults are `", "`/`": "` (probe-verified);
+  the normative serializer form is `json.dumps(rows, ensure_ascii=False,
+  separators=(",", ":"))`; the output file ends `]\n`.
+- **D-27 — the field-size limit is raised to the largest value the running
+  interpreter accepts (F-15, NFR-005), degrading on OverflowError** (the
+  setter's domain is the interpreter's C-integer binding, which may be
+  narrower than `sys.maxsize` on some builds; an unhandled startup
+  OverflowError would violate REQ-007).
+
+Cycle-3 review decisions (v6, from appendix/07-review-req-c3.md; all
+findings `needs-user:false`, none contradicts a user decision):
+
+- **D-28 — physical-line counting basis (F-21).** The DECODED text is
+  divided into physical lines by exactly the §3.1 row terminators — `\n`,
+  `\r\n` (ONE break), or a bare `\r`; VT 0x0B / FF 0x0C / NEL U+0085 /
+  U+2028 / U+2029 are data and never break a line (consistent with
+  D-14/D-20 and with `csv.reader.line_num`, so conforming row-level and
+  decode-level line numbers agree with no conversion; a `str.splitlines()`
+  counter is non-conforming — it also breaks on VT/FF/NEL). Every
+  line-citing requirement (REQ-007(c), REQ-011, REQ-013 N and M) uses this
+  basis. Pins the observability of Q-04/D-13's line-number promise on the
+  CR/CRLF files REQ-014/D-24 legitimized.
+- **D-29 — error ordering: sequential fail-fast, no pre-pass (F-22).**
+  REQ-013's "whole decoded input" is SCOPE (header included, D-25), never
+  a pre-pass ahead of row validation: when a field-count-bad row precedes
+  the row containing the unterminated quote (`id,name\n1\n"2,3`), the
+  count error at the earlier row wins (line 2), and the quote error fires
+  when its own row is reached. Matches REQ-008/D-10's first-error
+  philosophy; all pre-existing REQ-013 acceptance outcomes unchanged
+  (in each, the quote's row is the first thing that fails).
+- **D-30 — REQ-013's two line numbers defined; quote opens only at
+  field start (F-23 + F-24).** N (cited line) = physical line where the
+  offending ROW starts (REQ-007(c) convention); M ("opened at") =
+  physical line where the unterminated field's opening quote sits
+  (N < M possible when earlier fields contain line breaks;
+  `h1,h2\n"a\nb",c,"d\ne` → `line 2 ... (opened at line 3)`). The
+  parenthetical parity gloss is replaced by the dialect-exact condition:
+  a quoted section opens ONLY where a field STARTS with `"`; a `"`
+  elsewhere in an unquoted field is data (`desc,qty\n5" ruler,2\n`
+  converts, exit 0 — negative AC).
+- **D-31 — BOM-only file routes to the empty-file error (F-25).** The
+  REQ-012 strip runs before the REQ-009 empty check, so a file with no
+  bytes other than the leading BOM is the "file is empty (no header
+  row)" error — REQ-009's "zero-byte" condition reads "no bytes other
+  than an optional BOM" — never the line-1 invalid-header message (a
+  BOM-stripped empty string parses to ZERO rows, so that class's
+  condition is unreachable for it). Exit 1 either way; the class and
+  message are now pinned.
+- **D-32 — decision D-15's register row kept current (F-27).** The
+  register summary cites the live revision's §7.2 shape (steps (3b), (4)
+  split, (6) scope-per-D-29), not the v3 snapshot; hygiene rule applied
+  this cycle and standing for future cycles.
+
+The authoritative, machine-parsed status of every decision (D-01..D-17,
+the v4 decisions D-18..D-23, the v5 decisions D-24..D-27, and the v6
+decisions D-28..D-32) lives in appendix/03-decision-register.md.
+
+### 7.3 Cycle-2 changes (v3 → v4, review findings F-01..F-12)
+
+All twelve findings from appendix/04-review-req-c1.md (req-review cycle 1,
+verdict FAIL) are folded. None required user input (all findings
+`needs-user:false`; none contradicts a user decision — they refine the
+stdlib mechanics underneath the six user answers). New designer decisions
+D-18..D-23 (register updated); REQ-013 added (no renumbering); D-14's
+escape examples corrected by the §5.2 escape contract; D-07's
+freedom label dropped (F-07). Every stdlib-behavior claim was re-verified
+live on Python 3.13.5 in this workspace (blank-line row model, escape
+forms, field-size limit, unclosed-quote leniency) before folding.
+
+| F | disposition | where it landed |
+|---|---|---|
+| F-01 | fixed | REQ-009: stdlib-faithful 0-field blank-line row model; `['']` model deleted; trailing-newline discipline pinned |
+| F-02 | fixed | §5.2 escape contract (short forms `\f`, `\b`, ...; `\u00XX` otherwise; DEL/U+2028/U+2029 raw); D-14 cross-reference updated |
+| F-03 | fixed | NFR-005: `csv.field_size_limit(sys.maxsize)` mandated; MemoryError behavior pinned to error contract |
+| F-04 | fixed | REQ-013 (new): unterminated quote at EOF is a structural error; D-19 |
+| F-05 | fixed | REQ-007: (a) applies to ALL error classes; REQ-001 usage message carries the prefix |
+| F-06 | fixed | REQ-011: location = 1-based physical line number of offending byte |
+| F-07 | fixed | NFR-002: floor is contract, not freedom; D-07 relabeled |
+| F-08 | fixed | §7 pointer now cites D-01..D-17 + D-18..D-23 |
+| F-09 | fixed | header note: slug is workspace name; tool/doc are `csv2json` |
+| F-10 | fixed | §5.2 bullet 1: "stdlib default dialect" wording |
+| F-11 | fixed | NFR-005 acceptance: `",,,,"` example dropped; 10 MB cases kept and made precise |
+| F-12 | fixed | §3.1 anchor: "stdlib default dialect" is the operative term; RFC 4180 demoted to approximation |
+
+### 7.4 Cycle-3 changes (v4 → v5, review findings F-13..F-20)
+
+All eight findings from appendix/06-review-req-c2.md (req-review cycle 2,
+verdict FAIL: 2×P1, 2×P2, 4×P3) are folded. None required user input (all
+`needs-user:false`; none contradicts a user decision — F-13 enforces
+Q-01/D-11 losslessness, F-14 enforces REQ-013's own rationale). New
+designer decisions D-24..D-27 (register updated); REQ-014 added (no
+renumbering). Every stdlib-behavior claim the folds pin was re-verified
+live on Python 3.13.5 in this workspace before folding (newline-mode
+matrix, unclosed-quote-in-header leniency, field-limit OverflowError,
+json.dumps separator defaults — appendix/05-review-req-c2-probes.py,
+appendix/05c-separators-probe.py).
+
+| F | sev | disposition | where it landed |
+|---|---|---|---|
+| F-13 | P1 | fixed | D-24 + REQ-014 (new): `newline=''` decode→parse handoff is contract; universal-newline translation forbidden; residual `_csv.Error` classes mapped onto REQ-007; REQ-004 byte-exact acceptance added; §3.1 normative bullet; D-15 step (3b) |
+| F-14 | P1 | fixed | D-25: REQ-013 extended to the ENTIRE input incl. the header (`"id,name` → exit 1, line 1, never `[]`/exit 0); new acceptance case |
+| F-15 | P2 | fixed | NFR-005 MUST reworded: raise to the largest value the running interpreter accepts, degrading on OverflowError; D-27 |
+| F-16 | P2 | fixed | Register rows D-08/D-09/D-10 relabeled DECIDED with v5 sources; §3.2 D-08 bullet rewritten to cite the pinned contracts |
+| F-17 | P3 | fixed | REQ-009 bullets reordered: the two 0-field errors sit adjacent, with a cross-reference sentence |
+| F-18 | P3 | fixed | D-15 slot (4) named "empty file / invalid header (0-field first row)", slot (5) "duplicate header names" |
+| F-19 | P3 | fixed | §5.2: exactly one trailing newline after `]` is a MUST (output ends `]\n`); D-26 |
+| F-20 | P3 | fixed | §5.2: explicit `separators=(",", ":")` mandated (probe 05c evidence); D-26 |
+
+### 7.5 Cycle-3 changes (v5 → v6, review findings F-21..F-27)
+
+All seven findings from appendix/07-review-req-c3.md (req-review cycle 3,
+verdict FAIL: 3×P1, 2×P2, 2×P3) are folded. None required user input (all
+`needs-user:false`; none contradicts a user decision — F-21 enforces the
+observability of Q-04/D-13's line-number promise, F-22 enforces
+Q-03/D-05/D-10's first-error philosophy, F-23/F-24 pin REQ-013's own
+contract). New designer decisions D-28..D-32 (register updated); no new
+REQ (REQ-014 remains the newest id; no renumbering). Every stdlib-behavior
+claim the folds pin was re-verified live on Python 3.13.5 in this
+workspace before folding (line-counting bases incl. CRLF-as-one and
+splitlines' VT/FF breaks; the F-22 counterexample ordering; the N/M
+multi-field unterminated-quote shape; the `5" ruler` negative case;
+BOM-only parse yielding zero rows — probes re-run where the review cited
+them, appendix/07-review-req-c3-probes*.py).
+
+| F | sev | disposition | where it landed |
+|---|---|---|---|
+| F-21 | P1 | fixed | D-28: glossary "physical line" redefined on the D-28 basis (terminator trio in decoded text, CRLF = one break, VT/FF/NEL/U+2028/U+2029 are data); made normative in REQ-007(c); REQ-011 cites the basis with the CR-only `line 4` acceptance case |
+| F-22 | P1 | fixed | D-29: sequential fail-fast ordering; REQ-013 "pre-detects" rewritten to express SCOPE (header included, D-25), never a pre-PASS; D-15 slot (6) de-contradicted; new ordering AC `id,name\n1\n"2,3` → count error at line 2 |
+| F-23 | P1 | fixed | D-30: N (row start) and M (opening-quote line) defined separately; new AC `h1,h2\n"a\nb",c,"d\ne` → `line 2 ... (opened at line 3)` |
+| F-24 | P2 | fixed | D-30: parity parenthetical replaced by the dialect-exact condition (quote opens only at field start; `"` elsewhere in an unquoted field is data); negative AC `desc,qty\n5" ruler,2\n` → exit 0 |
+| F-25 | P2 | fixed | D-31: BOM-only file → REQ-009 "file is empty (no header row)" ("zero-byte" now reads "no bytes other than an optional BOM"); ACs added in REQ-009 and REQ-012 |
+| F-26 | P3 | fixed | REQ-007: "the row *starts*" subject restored (v4→v5 fold regression) |
+| F-27 | P3 | fixed | Register D-15 row refreshed to the v6 §7.2 shape (3b, slot (4) split, slot (6) per D-29), source re-cited; standing hygiene rule D-32 |
+
+## 8. Glossary
+
+| term | definition |
+|---|---|
+| stdlib default dialect | The Python stdlib `csv` module's default dialect — the operative parsing definition of this document (§3.1): delimiter `,`, quote `"`, doubled quote `""` escape, blank physical line → 0-field row, unterminated quote at EOF → silently lenient (tightened to an error by REQ-013). Approximates RFC 4180 but is authoritative where they differ. |
+| header row | The first row of the input CSV. Its fields become the keys of every output object. Never treated as data. |
+| data row | Any parsed row after the header row. |
+| field | One CSV cell, i.e. one element of a parsed row, after quote processing. |
+| field count | The number of fields in a parsed row. Data rows must match the header row's field count exactly. |
+| physical line | One line of the input, counted 1-based from the file start, on the counting basis fixed by D-28 (review F-21): the DECODED text is divided into lines by exactly the row terminators of §3.1 — a line break is `\n`, or `\r\n` (ONE break, not two), or a bare `\r`; VT 0x0B, FF 0x0C, NEL U+0085, and U+2028/U+2029 are DATA and never break a physical line. This is the same basis as `csv.reader.line_num`, so conforming row-level line numbers need no conversion. Error messages cite physical line numbers, because users see them in editors. |
+| logical row | A parsed CSV row, which may span multiple physical lines when a quoted field contains newlines. |
+| newline='' semantics | The decode→parse handoff contract (REQ-014, D-24): the decoded input text reaches `csv.reader` with no newline translation or splitting (e.g. `io.StringIO(text, newline="")`). CR/CRLF/LF stay intact for the dialect to interpret — including inside quoted fields, where they must survive byte-exactly. Universal-newline translation is forbidden under this term. |
+| output object | One JSON object in the output array: a flat mapping of header names to that row's field values. |
+| compact JSON | The single-line JSON serialization chosen in Q-02: separators `,`/`:`, no indentation. Contractual output shape (§5.2). |
+| BOM / U+FEFF | Byte-order mark: bytes EF BB BF at the start of a UTF-8 file, decoding to the character U+FEFF. STRIPPED from the file start per Q-05 → D-16 (REQ-012); a U+FEFF elsewhere is ordinary data (REQ-005). |
+| lossless | The property (Q-01) that every input cell's exact text appears unchanged in the JSON output — no type coercion, no trimming, no character replacement. |
+| success condition | See §1. A run is successful iff it exits 0 and the output file contains the complete converted array. |

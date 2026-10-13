@@ -294,7 +294,13 @@ async def _render(ctx: JobContext):
     if profile_ref is None or profile_ref in ("", "default"):
         profile = "default"
     elif isinstance(profile_ref, str):
-        profile = profile_ref
+        # Registered custom profiles arrive as definition JSON text
+        # (resolved at create time); parse to a dict for the renderer.
+        profile = (
+            json.loads(profile_ref)
+            if profile_ref.lstrip().startswith("{")
+            else profile_ref
+        )
     else:
         profile = json.loads(profile_ref) if isinstance(profile_ref, str) else profile_ref
 
@@ -322,6 +328,12 @@ async def _render(ctx: JobContext):
             "tokens": tokens,
         },
         "rendered_at": dt.datetime.now(dt.UTC).isoformat(),
+    }
+    # men profile inputs (design §8): original prompt + caller options for
+    # gap fields (ticket_key, safety_tier, ...). Deterministic values only.
+    meta["men"] = {
+        "prompt": ctx.job.prompt,
+        "options": json.loads(ctx.job.options) if ctx.job.options else {},
     }
     try:
         outputs = render_profile(

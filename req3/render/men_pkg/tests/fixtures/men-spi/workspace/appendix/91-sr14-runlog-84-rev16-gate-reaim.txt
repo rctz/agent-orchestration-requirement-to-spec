@@ -1,0 +1,17 @@
+PASS - G0 §4.5 fenced reference shape present
+PASS - G1 success run keeps the output file
+PASS - G2 post-open fault (write): partial target REMOVED by the arm
+PASS - G3 post-open fault on pre-existing target: truncated target REMOVED (D-33/D-46)
+PASS - G4 arm's remove fails: swallowed best-effort, original fault propagates, truncated 0-byte target remains (R-1 residue class, D-50 ordering lets the remove act)
+PASS - G5 flush-time fault (ENOSPC surface): partial target REMOVED
+PASS - G6 at-open class (fd never bound): NO compensation, pre-existing target 0-byte (D-54/D-57 window)
+PASS - G7 §11 coverage sentence names D-01..D-59 (cycle 16 adds no decision)
+PASS - G8 header revision row leads with v16
+PASS - G9 §5.1 diagram carries the at-open MemoryError edge (D-57)
+PASS - G10 §4.3 carries the D-58 fusion latitude
+PASS - G11 §7.3 net order unchanged (MemoryError before ToolError/Exception)
+PASS - G12a KI from the arm's own fd.close() aborts the compensation: partial target REMAINS (R-5 mechanism on the live shape)
+PASS - G12b the abort is mid-flight: the shape's success-line close fired BEFORE the arm's close (close events >= 2)
+PASS - G13 device output (/dev/null) is written, run reports success (D-55 class)
+
+TOTAL: 15 checks, 0 FAILURES

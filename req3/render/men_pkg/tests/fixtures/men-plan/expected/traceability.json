@@ -1,0 +1,373 @@
+{
+  "spec_version": 7,
+  "map": [
+    {
+      "ac_id": "AC-1",
+      "design_elements": [
+        "DE-7",
+        "DE-16"
+      ]
+    },
+    {
+      "ac_id": "AC-2",
+      "design_elements": [
+        "DE-5",
+        "DE-9",
+        "DE-17"
+      ]
+    },
+    {
+      "ac_id": "AC-3",
+      "design_elements": [
+        "DE-9",
+        "DE-10",
+        "DE-17"
+      ]
+    },
+    {
+      "ac_id": "AC-4",
+      "design_elements": [
+        "DE-9"
+      ]
+    },
+    {
+      "ac_id": "AC-5",
+      "design_elements": [
+        "DE-9",
+        "DE-10",
+        "DE-17"
+      ]
+    },
+    {
+      "ac_id": "AC-6",
+      "design_elements": [
+        "DE-1",
+        "DE-9",
+        "DE-17"
+      ]
+    },
+    {
+      "ac_id": "AC-7",
+      "design_elements": [
+        "DE-3",
+        "DE-6",
+        "DE-18",
+        "DE-20",
+        "DE-22"
+      ]
+    },
+    {
+      "ac_id": "AC-8",
+      "design_elements": [
+        "DE-9",
+        "DE-13",
+        "DE-15",
+        "DE-21"
+      ]
+    },
+    {
+      "ac_id": "AC-9",
+      "design_elements": [
+        "DE-9",
+        "DE-17"
+      ]
+    },
+    {
+      "ac_id": "AC-10",
+      "design_elements": [
+        "DE-1",
+        "DE-3",
+        "DE-11",
+        "DE-20",
+        "DE-21"
+      ]
+    },
+    {
+      "ac_id": "AC-11",
+      "design_elements": [
+        "DE-1",
+        "DE-8",
+        "DE-20"
+      ]
+    },
+    {
+      "ac_id": "AC-12",
+      "design_elements": [
+        "DE-8"
+      ]
+    },
+    {
+      "ac_id": "AC-13",
+      "design_elements": [
+        "DE-3",
+        "DE-6",
+        "DE-9",
+        "DE-15",
+        "DE-23"
+      ]
+    },
+    {
+      "ac_id": "AC-14",
+      "design_elements": [
+        "DE-1",
+        "DE-3",
+        "DE-9"
+      ]
+    },
+    {
+      "ac_id": "AC-15",
+      "design_elements": [
+        "DE-2",
+        "DE-23"
+      ]
+    },
+    {
+      "ac_id": "AC-16",
+      "design_elements": [
+        "DE-23"
+      ]
+    },
+    {
+      "ac_id": "AC-17",
+      "design_elements": [
+        "DE-9",
+        "DE-23"
+      ]
+    },
+    {
+      "ac_id": "AC-18",
+      "design_elements": [
+        "DE-7",
+        "DE-19",
+        "DE-23"
+      ]
+    },
+    {
+      "ac_id": "AC-19",
+      "design_elements": [
+        "DE-8",
+        "DE-12",
+        "DE-20",
+        "DE-23"
+      ]
+    }
+  ],
+  "design_elements": [
+    {
+      "id": "DE-1",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-6",
+        "AC-10",
+        "AC-11",
+        "AC-14"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-2",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-15"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-3",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-7",
+        "AC-10",
+        "AC-13",
+        "AC-14"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-4",
+      "ref": "plan.md#design-elements",
+      "backed_by": [],
+      "justification": "spec §2.4 records design-boundary material (architecture/negative scope); it supports no acceptance criterion directly — see plan.md Review & Validation Trail"
+    },
+    {
+      "id": "DE-5",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-2"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-6",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-7",
+        "AC-13"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-7",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-1",
+        "AC-18"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-8",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-11",
+        "AC-12",
+        "AC-19"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-9",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-8",
+        "AC-9",
+        "AC-13",
+        "AC-14",
+        "AC-17"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-10",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-3",
+        "AC-5"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-11",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-10"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-12",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-19"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-13",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-8"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-14",
+      "ref": "plan.md#design-elements",
+      "backed_by": [],
+      "justification": "spec §5.2 records design-boundary material (architecture/negative scope); it supports no acceptance criterion directly — see plan.md Review & Validation Trail"
+    },
+    {
+      "id": "DE-15",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-8",
+        "AC-13"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-16",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-1"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-17",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-2",
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-9"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-18",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-7"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-19",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-18"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-20",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-7",
+        "AC-10",
+        "AC-11",
+        "AC-19"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-21",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-8",
+        "AC-10"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-22",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-7"
+      ],
+      "justification": null
+    },
+    {
+      "id": "DE-23",
+      "ref": "plan.md#design-elements",
+      "backed_by": [
+        "AC-13",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19"
+      ],
+      "justification": null
+    }
+  ],
+  "confidence": 1.0,
+  "risk_flags": []
+}

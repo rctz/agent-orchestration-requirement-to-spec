@@ -1,0 +1,30 @@
+PASS - LIVE 13-spec-design-probes.py runs green
+PASS - LIVE 77-rev15-shape-identity.py runs green
+PASS - LIVE 84-rev16-gate-reaim.py runs green
+PASS - LIVE 85-rev16-fold-pins.py runs green
+PASS - LIVE 86-rev16-mangle-sweep.py runs green
+PASS - LIVE 87-rev16-delta-audit.py runs green
+PASS - LIVE 20-rev3-order-probes.py runs green
+PASS - LIVE 22-rev4-writeorder-probes.py runs green
+PASS - LIVE 30b-adv-c6-reaim-probes.py runs green
+PASS - HISTORICAL 25-rev5-serialize-form-probes.py does not run green (label truthful)
+PASS - HISTORICAL 28-rev6-writegate-probes.py does not run green (label truthful)
+PASS - HISTORICAL 32-rev8-fdclose-probes.py does not run green (label truthful)
+PASS - HISTORICAL 36-rev9-ki-argparse-probes.py does not run green (label truthful)
+PASS - HISTORICAL 41-rev10-adv9-folds-probes.py does not run green (label truthful)
+PASS - HISTORICAL 47-rev11-adv10-folds-probes.py does not run green (label truthful)
+PASS - HISTORICAL 48b-adv-c11-probes.py does not run green (label truthful)
+PASS - HISTORICAL 51-rev12-adv11-folds-probes.py does not run green (label truthful)
+PASS - HISTORICAL 58-rev13-sr11-folds-probes.py does not run green (label truthful)
+PASS - HISTORICAL 59-rev13-gate-reaim.py does not run green (label truthful)
+PASS - HISTORICAL 67-rev14-gate-reaim.py does not run green (label truthful)
+PASS - HISTORICAL 68-rev14-delta-audit.py does not run green (label truthful)
+PASS - HISTORICAL 69-rev14-mangle-sweep.py does not run green (label truthful)
+PASS - HISTORICAL 70-rev14-fold-pins.py does not run green (label truthful)
+PASS - HISTORICAL 78-rev15-gate-reaim.py does not run green (label truthful)
+PASS - HISTORICAL 79-rev15-delta-audit.py does not run green (label truthful)
+PASS - HISTORICAL 80-rev15-mangle-sweep.py does not run green (label truthful)
+PASS - HISTORICAL 81-rev15-fold-pins.py does not run green (label truthful)
+PASS - HISTORICAL 83-rev15-final-gate.py does not run green (label truthful)
+
+TOTAL: 28 checks, 0 FAILURES

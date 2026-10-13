@@ -1,0 +1,117 @@
+{
+  "ticket_key": "CSV2JS-1",
+  "spec_version": 7,
+  "title": "I need a small command-line tool: csv2json.",
+  "safety_tier": "normal",
+  "safety_rationale": "Derived by req-lab export: verdict READY; no auth/payments/PII flags exist in the req-lab artifact set — classify manually if uncertain.",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "running the command above with a valid input produces the output file; running with zero, one, or three arguments fails with a usage message on stderr, a **1** exit code, and no output file is created. The usage message is an error message like any other: it carries the fixed `csv2json: error:` prefix (REQ-007 (a) applies to ALL error classes — F-05), e.g. `csv2json: error: usage: csv2json.py <input.csv> <output.json>`. The exit code for usage/argument errors is exactly 1 — the same code as every other error class (REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, NFR-005), keeping the tool's exit contract two-valued: 0 or 1 (F-29, D-34). An argparse-based implementation MUST override argparse's default usage-exit code 2 (verified live: argparse exits 2 on a missing positional — appendix/10-fold-c5-probes.py, F29 probe).",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-2",
+      "text": "for input whose first row is `id,name`, every output object has exactly the keys `id` and `name`, in that insertion order; for header `id,name,id` the run exits 1 with the duplicate-name error above and no output file is created (REQ-010); for input `a,,b\\n1,2,3\\n` the output is exactly `[{\"a\":\"1\",\"\":\"2\",\"b\":\"3\"}]`, exit 0 (F-33 AC).",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-3",
+      "text": "a 3-row CSV (plus header) yields a JSON array of exactly 3 objects in the same order.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-4",
+      "text": "a row `\"a,b\",c` parses to two fields `a,b` and `c`; a field `\"say \"\"hi\"\"\"` parses to `say \"hi\"`; a quoted field spanning two physical lines parses as one field. Newlines inside quoted fields are preserved BYTE-EXACTLY (D-24 handoff, review F-13): a field `\"x\\r\\ny\"` parses to the value `x\\r\\ny` (CRLF kept; NOT rewritten to `x\\ny` — the universal-newline rewrite is a non-conforming implementation), and a field `\"x\\ry\"` keeps its bare CR. For the unterminated-quote case at end of input see REQ-013.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-5",
+      "text": "CSV row `42,3.14,true,` produces JSON values `\"42\"`, `\"3.14\"`, `\"true\"`, `\"\"` (empty string, not null); row `007,` produces `\"007\"`, `\"\"`; no output value has a JSON type other than string.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-6",
+      "text": "header of 3 columns; a data row with 2 or with 4 fields each cause the run to fail per REQ-008.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-7",
+      "text": "a test file with a short row on physical line 4 yields exactly that message on stderr (numbers match the physical file lines, not logical row indexes).",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-8",
+      "text": "a file with two bad rows reports only the first one; output file is absent or unchanged after the failed run.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-9",
+      "text": "each of the five cases behaves as stated; in particular, a 1-column file `a\\n\\n1\\n` FAILS at line 2 (`expected 1 fields, found 0`), a 3-column file `a,b,c\\n1,2,3\\n\\n` fails at line 3 (`expected 3 fields, found 0`), a file of only blank lines `\\n\\n` fails with the invalid-header error at line 1; the BOM-only file (EF BB BF, 3 bytes; F-25/D-31 AC) fails with `csv2json: error: input.csv: file is empty (no header row)` — the zero-byte message — and NOT the line-1 invalid-header message; a 1-column file `a\\n \\n1\\n` (whitespace-only middle line; F-31/D-36 AC) CONVERTS to exactly `[{\"a\":\" \"},{\"a\":\"1\"}]`, exit 0 — a build that errors at line 2 with `found 0` treats the whitespace-only line as blank and is NON-CONFORMING.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-10",
+      "text": "run on an invalid CSV with a fresh output path → no output file exists afterwards; run with an output path inside a non-writable directory → exit 1 with a clear message; with a valid input and an output destination that accepts `open()` but fails write/flush (e.g. `/dev/full` on Linux: `open(\"/dev/full\", \"w\")` succeeds, flush raises `OSError errno=28` — verified live, appendix/10-fold-c5-probes.py F28 probes) → exit 1, an error message naming the output path on stderr, and no leftover partial output file (for `/dev/full`, a device node, \"removal\" means the tool's best-effort delete attempt on a device path fails harmlessly and is ignored per this contract; on a REGULAR file the path is gone afterwards).",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-11",
+      "text": "a file containing the single invalid byte sequence `0xFF` yields an error message on stderr containing the input filename, the text \"not valid UTF-8\" (or equivalent clear wording), and a `line N` reference (exit code 1, no output file per REQ-010); the CR-only file `a,b\\rc,d\\rc\\r\\xff` is cited at `line 4` exactly (D-28 basis; F-21 acceptance); an ASCII file and a UTF-8 file containing Thai text (`ประเทศไทย`) both convert successfully with the text intact in the JSON output.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-12",
+      "text": "a valid CSV prefixed with a UTF-8 BOM whose header is `id,name` produces objects keyed `id`, `name` (first key does NOT start with U+FEFF), exit 0; the same file without the BOM produces byte-identical output; a U+FEFF inside a cell (not at file start) is preserved verbatim in the output string; a file consisting ONLY of the BOM (3 bytes) decodes, is stripped to the empty string, and then fails per REQ-009's empty-file error (F-25/D-31), exit 1, no output file.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-13",
+      "text": "`id,name\\n\"1,2` (no closing quote) exits 1 with the message above (line 2), no output file; `a\\n\"1` (1-column, lenient parse would be a \"valid\" row) ALSO exits 1 with the same message shape at line 2; `\"id,name` (unclosed quote in the header line, file ends) exits 1 with `csv2json: error: input.csv line 1: unterminated quoted field (opened at line 1)`, no output file — NOT the `[]`/exit-0 outcome; `a,b\\n1,2\\n\"x,y\",2\\n` (properly closed multi-line quote) converts normally, exit 0; `id,name\\n1\\n\"2,3` (count-bad row BEFORE the unterminated quote; F-22/D-29 ordering AC) exits 1 with the REQ-007 count error at line 2 (`expected 2 fields, found 1`) — NOT the quote error at line 3; `h1,h2\\n\"a\\nb\",c,\"d\\ne` (non-first unterminated field; F-23/D-30 AC) exits 1 with exactly `csv2json: error: input.csv line 2: unterminated quoted field (opened at line 3)` (N = row start, M = opening-quote line), no output file; `desc,qty\\n5\" ruler,2\\n` (quote character inside an UNQUOTED field — data, never a quote opening; F-24/D-30 negative AC) converts normally to `[{\"desc\":\"5\\\" ruler\",\"qty\":\"2\"}]`, exit 0 — a build that rejects it as \"unterminated\" is NON-CONFORMING.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-14",
+      "text": "the CR-only file `h,k\\rc,d\\r` converts to `[{\"h\":\"c\",\"k\":\"d\"}]`, exit 0; the file `h,k\\n\"x\\r\\ny\",2\\n` converts to an object whose `h` value is `x\\r\\ny` (appearing in the output file as the JSON escape sequence `\"x\\r\\ny\"`, §5.2 short forms), exit 0 — a build that produces `x\\ny` there is NON-CONFORMING; the file `h,k\\n\"x\\ry\",2\\r` converts with `h` = `x\\ry`, exit 0.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-15",
+      "text": "`grep` of the script shows imports only from the stdlib; the tool runs on a bare Python installation.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-16",
+      "text": "the script imports and runs on Python 3.9.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-17",
+      "text": "documented test with a generated 50 MB file completes within the limits (spot check, not a hard gate).",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-18",
+      "text": "successful run → empty stdout; failed run → REQ-007 message on stderr, exit 1.",
+      "risk_flags": []
+    },
+    {
+      "id": "AC-19",
+      "text": "input containing `<script>` sequences, a 10 MB single field, and a single row totalling 10 MB spread across many fields — output stays valid JSON, exit code reflects validity of the CSV structure only, and none of them trips the 131072-byte default field limit.",
+      "risk_flags": []
+    }
+  ],
+  "out_of_scope": [
+    "Type inference / type conversion: RESOLVED as \"all strings\" by the user (Q-01 → D-11); regardless, no user-defined type mapping exists.",
+    "Any Graphical or web UI; the tool is CLI-only.",
+    "Configuration files, environment-variable configuration, or named options beyond the two positional arguments.",
+    "Streaming/incremental output for files that do not fit in memory (see NFR-003 for the chosen size envelope).",
+    "CSV dialect auto-detection beyond the stdlib default (sniffing semicolon or tab dialects is not offered).",
+    "Reading input from stdin or writing output to stdout.",
+    "Pretty-printed / human-formatted JSON output: the user fixed the output shape as compact (Q-02 → D-11b); no formatting options are offered.",
+    "Deduplication, sorting, filtering, or any transformation other than the row→object mapping.",
+    "Windows-specific line-ending and code-page handling beyond the pinned contracts of §3.1 (the `newline=''` decode→parse handoff, D-24) and §5.2 (strict UTF-8, REQ-011) — recorded as D-08 (relabeled DECIDED in v5; review F-16)."
+  ],
+  "confidence": 1.0,
+  "risk_flags": []
+}

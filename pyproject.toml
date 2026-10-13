@@ -40,3 +40,9 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+extend-exclude = [
+    # Verbatim v2 converter port (M8): behavior pinned byte-exact by the
+    # golden tests — style fixes there would be churn the fixtures must
+    # then re-record. Not linted by design.
+    "req3/render/men_pkg",
+]

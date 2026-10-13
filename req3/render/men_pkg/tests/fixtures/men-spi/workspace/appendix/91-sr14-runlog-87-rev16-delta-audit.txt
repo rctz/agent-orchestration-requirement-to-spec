@@ -1,0 +1,5 @@
+PASS - 1 section headings identical (numbering stable)
+PASS - 2 every new long sentence carries a cycle-15 fold marker or is a classified fragment (rev15 whitelist)
+
+new long sentences: 43; unclassified: 0
+TOTAL: 2 checks, 0 FAILURES

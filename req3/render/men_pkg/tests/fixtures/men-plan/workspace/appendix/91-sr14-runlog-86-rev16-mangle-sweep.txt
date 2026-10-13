@@ -1,0 +1,6 @@
+PASS - no isolated pipe-lines (mangle sweep 1)
+PASS - no doubled pipes (mangle sweep 2)
+PASS - every 'byte-untouched' site is scoped or carries the D-57/R-6 exception (19 sites)
+PASS - all 'filesystem untouched' sites are serialize/encode-scoped (3 sites)
+
+TOTAL: 4 sweeps, 0 FAILURES

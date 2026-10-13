@@ -30,7 +30,8 @@ RENDER_TIMEOUT_S = 5.0
 MAX_TEMPLATE_OUTPUT_BYTES = 5 * 1024 * 1024
 
 CODE_GENERATORS = frozenset(
-    {"builtin:manifest", "builtin:requirements.json", "builtin:spec.json"}
+    {"builtin:manifest", "builtin:requirements.json", "builtin:spec.json",
+     "builtin:men"}
 )
 
 
@@ -160,6 +161,15 @@ def render_profile(
                 if spec is None:
                     raise RenderError("spec doc missing for builtin:spec.json")
                 outputs[path] = _json_bytes(spec)
+            elif template == "builtin:men":
+                if requirements is None:
+                    raise RenderError("requirements doc missing for builtin:men")
+                from .men_bridge import MenBridgeError, men_bundle
+
+                try:
+                    outputs.update(men_bundle(requirements, spec, meta))
+                except MenBridgeError as exc:
+                    raise RenderError(str(exc)) from exc
             continue  # builtin:manifest is appended below, always
         if template.startswith("builtin:"):
             template_file: Path = profile_dir / template[len("builtin:"):]

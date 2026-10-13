@@ -171,6 +171,65 @@ async def _ensure_executor_healthy(request: Request) -> None:
 # ---- routes ---------------------------------------------------------------
 
 
+def _builtin_profile_names() -> list[str]:
+    from ..paths import PROFILES_DIR
+
+    return sorted(
+        p.parent.name
+        for p in (PROFILES_DIR / "builtin").glob("*/profile.json")
+    )
+
+
+async def _resolve_profile_name(request: Request, name: str) -> str:
+    """Builtin names pass through; registered names resolve to their
+    stored definition (JSON text, re-parsed at render time); anything
+    else is a fail-fast 422 (design §8/§9)."""
+    if name in ("", "default") or name in _builtin_profile_names():
+        return name
+    registered = await request.app.state.db.get_profile(name)
+    if registered is None:
+        raise ApiError(
+            422,
+            "invalid_profile",
+            f"unknown output_profile {name!r} — builtin: "
+            f"{', '.join(_builtin_profile_names())}; register via "
+            "POST /v1/output-profiles",
+        )
+    return json.dumps(registered, ensure_ascii=False)
+
+
+class ProfileRegistration(BaseModel):
+    definition: dict[str, Any]
+
+
+@router.get("/output-profiles")
+async def list_output_profiles(request: Request) -> dict[str, Any]:
+    """Builtin profile names + registered custom profile definitions."""
+    registered = await request.app.state.db.list_profiles()
+    return {"builtin": _builtin_profile_names(), "registered": registered}
+
+
+@router.post("/output-profiles", status_code=201)
+async def register_output_profile(
+    body: ProfileRegistration, request: Request
+) -> dict[str, Any]:
+    """Register a custom output profile by name (design §8)."""
+    from ..render.renderer import validate_profile
+
+    errors = validate_profile(body.definition)
+    if errors:
+        raise ApiError(422, "invalid_profile", "; ".join(errors))
+    name = body.definition["name"]
+    if name in _builtin_profile_names():
+        raise ApiError(409, "invalid_profile", f"{name!r} is a builtin profile")
+    await request.app.state.db.save_profile(name, body.definition)
+    return {
+        "name": name,
+        "registered": True,
+        "files": [f["path"] for f in body.definition["files"]],
+    }
+
+
 @router.post("/jobs", status_code=202)
 async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]:
     await _ensure_executor_healthy(request)
@@ -189,6 +248,8 @@ async def create_job(body: CreateJobRequest, request: Request) -> dict[str, Any]
         if isinstance(body.output_profile, str)
         else json_or_none(body.output_profile)
     )
+    if isinstance(profile, str):
+        profile = await _resolve_profile_name(request, profile)
     rec = None
     for _ in range(5):
         candidate = JobRecord(

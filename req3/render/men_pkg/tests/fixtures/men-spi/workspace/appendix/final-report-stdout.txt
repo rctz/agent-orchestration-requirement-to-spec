@@ -1,0 +1,12 @@
+Final-report turn complete — all four deliverables verified:
+
+**1. รายงานฉบับสมบูรณ์** — `/home/pi/hermes-workspaces/req-lab-v2/i-need-a-small-command-line-tool-csv2js/appendix/05-final-report.md`
+สร้างจากไฟล์ต้นทางจริงทั้งหมด (อ่านซ้ำ requirements v7, spec v16, decision register, review/adv/mechval/cold-audit ทุกไฟล์ — ดึง verdict แบบ programmatic ไม่ใช่จาก cycle count) หมายเหตุ: ticker's completion pass เขียนรายงานไปพร้อมกันระหว่างผมอ่านไฟล์ ผมจึงตรวจทานฉบับบนดิสก์และแก้จุดที่ขัดแย้งกับ bundle 5 จุดตามกฎ "bundle wins" (นับ REQ/NFR 15→19, สลับ run-id ของ mechval gate/final, เพิ่ม R-3 ใน risk register, นับ legacy advisory rows ใหม่เป็น 10 open + 3 deferred)
+
+**2. README.md** — ticker เขียน index ฉบับ COMPLETE ไว้แล้ว ผมตรวจทานทุกข้อความกับหลักฐานจริง (วันที่, จำนวน cycle, รายการ bundle, 16 open/deferred = 13+3 ✓) ถูกต้องครบ ไม่ต้องแก้
+
+**3. appendix/06-metrics.md** — มีครบ (17 mechval runs, adversarial classes covered vs N/A, 2 ASK_USER rounds, wall-clock 3.5 วัน)
+
+**4. สรุปภาษาไทย** — พิมพ์ไปที่ stdout แล้วด้านบน
+
+สรุป: โปรเจกต์ `i-need-a-small-command-line-tool-csv2js` **COMPLETE / READY** — requirements v7 + spec v16 ผ่านทุกด่าน (req-review c5 PASS → คุณ approve 2026-09-17, spec-review c14 PASS 0 findings, mechval final PASS, adv-c16 PASS, cold-audit READY ด้วย 0 คำถามบล็อก) ส่งต่อ code implementor ได้ทันทีโดยยื่น bundle ตามลิสต์ใน README โดยให้ `spec/16-spec-v16.md` เป็นแหล่งความจริงเดียว และใช้แผนสร้างจาก cold-audit §2 เป็นจุดเริ่ม หากพบตำหนิหลังเริ่มเขียนโค้ด ใช้ `req2 defect i-need-a-small-command-line-tool-csv2js <area> "<note>"`

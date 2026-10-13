@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -45,8 +46,22 @@ def create_app(config: Config | None = None, *, executor: Executor | None = None
         app.state.workspace_root = Path(config.data_dir) / "jobs"
         app.state.executor = executor or get_executor(config, required_agents, required_models)
         app.state.health_cache = None
+        from .api.webhooks import WebhookSender
+
+        async def _load_status(job_id: str):
+            rec = await db.get_job(job_id)
+            from .api.rest import job_status_body
+
+            return job_status_body(rec)
+
+        webhook_sender = WebhookSender(
+            os.environ.get("REQ3_WEBHOOK_SECRET"), _load_status
+        )
+        app.state.webhooks = webhook_sender
         app.state.engine = (
-            Engine(config, db, app.state.executor, app.state.workspace_root)
+            Engine(
+                config, db, app.state.executor, app.state.workspace_root, webhook_sender
+            )
             if engine_enabled
             else None
         )
@@ -75,6 +90,8 @@ def create_app(config: Config | None = None, *, executor: Executor | None = None
                 expiry_task.cancel()
             if app.state.engine is not None:
                 await app.state.engine.stop()
+            if getattr(app.state, "webhooks", None) is not None:
+                await app.state.webhooks.close()
             aclose = getattr(app.state.executor, "aclose", None)
             if aclose is not None:
                 await aclose()
@@ -138,6 +155,12 @@ def create_app(config: Config | None = None, *, executor: Executor | None = None
 
     app.include_router(rest.router)
     app.include_router(sse_api.router)
+
+    from .api import a2a as a2a_api
+
+    app.add_api_route("/a2a", a2a_api.a2a, methods=["POST"], include_in_schema=False)
+    app.add_api_route("/a2a", a2a_api.agent_card, methods=["GET"], include_in_schema=False)
+    app.add_api_route("/.well-known/agent.json", a2a_api.agent_card, methods=["GET"])
     return app
 
 

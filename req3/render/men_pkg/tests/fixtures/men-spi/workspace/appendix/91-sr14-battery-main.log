@@ -1,0 +1,78 @@
+== 84-rev16-gate-reaim.py rc=0 0.0s -> appendix/91-sr14-runlog-84-rev16-gate-reaim.txt
+PASS - G12b the abort is mid-flight: the shape's success-line close fired BEFORE the arm's close (close events >= 2)
+PASS - G13 device output (/dev/null) is written, run reports success (D-55 class)
+
+TOTAL: 15 checks, 0 FAILURES
+== 85-rev16-fold-pins.py rc=0 0.1s -> appendix/91-sr14-runlog-85-rev16-fold-pins.txt
+PASS - P30 probes-row live re-proof cites name 84 (not the dead 78) at 32/36/48b/51
+PASS - P31 the rev15 gate set is labeled HISTORICAL since the v16 rollover in the probes row
+
+TOTAL: 31 checks, 0 FAILURES
+== 86-rev16-mangle-sweep.py rc=0 0.0s -> appendix/91-sr14-runlog-86-rev16-mangle-sweep.txt
+PASS - every 'byte-untouched' site is scoped or carries the D-57/R-6 exception (19 sites)
+PASS - all 'filesystem untouched' sites are serialize/encode-scoped (3 sites)
+
+TOTAL: 4 sweeps, 0 FAILURES
+== 87-rev16-delta-audit.py rc=0 0.1s -> appendix/91-sr14-runlog-87-rev16-delta-audit.txt
+PASS - 2 every new long sentence carries a cycle-15 fold marker or is a classified fragment (rev15 whitelist)
+
+new long sentences: 43; unclassified: 0
+TOTAL: 2 checks, 0 FAILURES
+== 88-rev16-liveness-sweep.py rc=0 3.7s -> appendix/91-sr14-runlog-88-rev16-liveness-sweep.txt
+PASS - HISTORICAL 81-rev15-fold-pins.py does not run green (label truthful)
+PASS - HISTORICAL 83-rev15-final-gate.py does not run green (label truthful)
+
+TOTAL: 28 checks, 0 FAILURES
+== 14-claim-keyword-check.py rc=0 0.1s -> appendix/91-sr14-runlog-14-claim-keyword-check.txt
+SIBLING live spec: 14-spec-v14.md — hits outside QC: 0
+OUR draft spec 16-spec-v16.md — keyword hits (whole file, QC not yet written): 0
+== 15-spec-selfcheck.py rc=0 0.1s -> appendix/91-sr14-runlog-15-spec-selfcheck.txt
+PASS S9 sections 1..12 in order 
+PASS S10 no APPROVED status in spec 
+
+TOTAL FAILURES: 0
+== 13-spec-design-probes.py rc=0 0.0s -> appendix/91-sr14-runlog-13-spec-design-probes.txt
+PASS P8 too many fields 
+PASS P8 mixed terminators 
+
+TOTAL FAILURES: 0
+== 20-rev3-order-probes.py rc=0 0.0s -> appendix/91-sr14-runlog-20-rev3-order-probes.txt
+PASS R6 quote-in-unquoted data 
+PASS R6 unterminated still caught 
+
+TOTAL FAILURES: 0
+== 22-rev4-writeorder-probes.py rc=0 0.0s -> appendix/91-sr14-runlog-22-rev4-writeorder-probes.txt
+PASS S3 absent target + mid-write fault -> removed 
+PASS S4 pre-existing + mid-write fault -> removed (never truncated) 
+
+TOTAL FAILURES: 0
+== 30b-adv-c6-reaim-probes.py rc=0 0.1s -> appendix/91-sr14-runlog-30b-adv-c6-reaim-probes.txt
+PASS P4 manual dispatch: `-h out.json` → E-READ, exit 1, stdout EMPTY (D-49) rc=1 out='' err='csv2json: error: cannot read -h: No such file or d'
+PASS P4 argparse default: `-h out.json` → help on stdout, exit 0 (outcome D-49 forbids) rc=0 out_head='usage: -c [-h] input output\n\npositional '
+
+TOTAL CHECKS: 8  PASS: 8  FAIL: 0
+== 77-rev15-shape-identity.py rc=0 0.0s -> appendix/91-sr14-runlog-77-rev15-shape-identity.txt
+PASS - T1 66 Part B's identity check calls outcome(corpus,'table') twice (the self-comparison this battery replaces)
+PASS - T2 the only two-quantity variant in 66 Part B is the FIRST-latch B3-class shape (no table-latch tq shape participates there)
+
+TOTAL: 30 checks, 0 FAILURES
+== 66-rev14-binding-timing.py rc=0 77.0s -> appendix/91-sr14-runlog-66-rev14-binding-timing.txt
+PASS - B doubled re-open, unclosed later line: normative N=2, M=2
+B3-class shape-vs-shape (first latch): PASS (the two shapes agree with each other)
+PASS - B-CORPORA all six corpora exercised
+TOTAL: 27 checks, 0 FAILURES
+
+==== SUMMARY ====
+84-rev16-gate-reaim.py: rc=0
+85-rev16-fold-pins.py: rc=0
+86-rev16-mangle-sweep.py: rc=0
+87-rev16-delta-audit.py: rc=0
+88-rev16-liveness-sweep.py: rc=0
+14-claim-keyword-check.py: rc=0
+15-spec-selfcheck.py: rc=0
+13-spec-design-probes.py: rc=0
+20-rev3-order-probes.py: rc=0
+22-rev4-writeorder-probes.py: rc=0
+30b-adv-c6-reaim-probes.py: rc=0
+77-rev15-shape-identity.py: rc=0
+66-rev14-binding-timing.py: rc=0

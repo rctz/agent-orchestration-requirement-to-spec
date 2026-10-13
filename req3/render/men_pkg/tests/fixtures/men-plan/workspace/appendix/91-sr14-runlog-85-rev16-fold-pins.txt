@@ -1,0 +1,33 @@
+PASS - P01 §4.3.3 fusion paragraph cites 77 as the real identity battery
+PASS - P02 §4.3.3 names the 66 Part-B self-comparison as superseded
+PASS - P03 §4.3.3 keeps B3 scoping + M authority (P13/P14 regression)
+PASS - P04 register D-58 row re-aims identity to 77 with the discriminator
+PASS - P05 §11 D-58 entry carries the re-aimed cite
+PASS - P06 probes row carries 77 as its own entry with the 30-check count
+PASS - P07 battery 77 runs 30/0 against its own corpus set (live)
+PASS - P08 no probe annotation labels 67 'HISTORICAL itself since the v14 rollover' while citing it as the live re-proof
+PASS - P09 32/36 re-proof cites name 84 (rev16); the v15-rollover wording survives as history (F-01 annotation + carried v15 text)
+PASS - P10 51 annotation's re-proof cites name 84 + 77 (not 58/59, not the dead 78)
+PASS - P11 48b annotation's re-proof cite names 84 G6 (not 59 G6, not the dead 78)
+PASS - P12 no live re-proof slot still names 58 or 59
+PASS - P13 §4.3.2 carries the D-59 binding note
+PASS - P14 register D-59 row names the v15 note addition
+PASS - P15 T-C9 baselines carry module-bound labels
+PASS - P16 QC-5 baselines carry module-bound labels
+PASS - P17 §9 NFR-003 row mirrors the baseline label
+PASS - P18 register D-58 row site list still cites the spec/15 shapes (append-only register, not path-rewritten)
+PASS - P19 register D-59 row site list still cites the spec/15 shapes (append-only register)
+PASS - P20 register carries the D-59 row (DECIDED, spec-designer)
+PASS - P21 §11 coverage sentence stays at D-59 (no new decision this cycle)
+PASS - P22 no D id above 59 named in §11
+PASS - P23 header decision-register row stays at D-59
+PASS - P24 §1 overview enumeration at D-59
+PASS - P25 header version row is v16 and the revision row leads with the v16 text
+PASS - P26 v15 revision row names the board-verified gate verdicts
+PASS - P27 §11 v15 history note names the cycle-15 probes
+PASS - P28 §11 v16 history note names the cycle-16 probes and the F-01 closure
+PASS - P29 the F-01 stale cite carries the HISTORICAL annotation + live successor
+PASS - P30 probes-row live re-proof cites name 84 (not the dead 78) at 32/36/48b/51
+PASS - P31 the rev15 gate set is labeled HISTORICAL since the v16 rollover in the probes row
+
+TOTAL: 31 checks, 0 FAILURES

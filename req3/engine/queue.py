@@ -24,10 +24,12 @@ class Engine:
         db: Database,
         executor: Executor,
         workspace_root: Path,
+        webhooks=None,
     ):
         self.config = config
         self.db = db
-        self.runner = JobRunner(config, db, executor, workspace_root)
+        self.runner = JobRunner(config, db, executor, workspace_root, webhooks)
+        self.webhooks = webhooks
         self._queue: asyncio.Queue[str] = asyncio.Queue()
         self._workers: list[asyncio.Task[None]] = []
 

@@ -1,0 +1,23 @@
+PASS R1 two records 
+PASS R1 N is 2 
+PASS R1 revised FSM flags unterminated 
+PASS R1 opening record-relative line is 2 
+PASS R1 M == 3 (D-28 truth) 
+PASS R1 M == line_of_offset(opening quote) 
+PASS R1 pipeline reports line 2 opened at 3 
+PASS R2 CR-interior unterminated 
+PASS R2 opening record-relative line is 2 
+PASS R2 M == 3 
+PASS R3 combined defect -> E-DUP (not E-UQ) 
+PASS R3 header quote, no duplicate -> E-UQ line 1 opened 1 
+PASS R3 clean header unchanged 
+PASS R4 S-1 output is 46 bytes 
+PASS R4 '[]\n' is 3 bytes 
+PASS R5 CRLF field converts 
+PASS R5 \r\n preserved in escapes 
+PASS R6 doubled quotes data 
+PASS R6 post-close junk data 
+PASS R6 quote-in-unquoted data 
+PASS R6 unterminated still caught 
+
+TOTAL FAILURES: 0

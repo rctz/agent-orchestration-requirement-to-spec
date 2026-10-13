@@ -1,0 +1,36 @@
+===== T-C8 (chars 120847..124651) =====
+T-C8 | write-phase failures | `/dev/full` → E-WRITE with output path, exit 1, no regular-file leftover; non-writable dir (mode 0555) → E-WRITE, no file created (SKIP AS ROOT — DAC_OVERRIDE defeats mod
+e 0555 directories exactly as it defeats mode 444 files, T-C2's convention; adv-c11 F-03); pre-existing READ-ONLY target (mode 444) in a writable dir → E-WRITE and the target's prior bytes BYTE-IDENTI
+CAL afterward (at-open failure, D-46 — the v5 wide-scope behavior that deleted it is non-conforming; SKIP AS ROOT — DAC_OVERRIDE defeats mode 444 and the premise never materializes, T-C2's convention,
+ adv-c6 F-04); pre-existing output file survives an input-error run byte-unchanged; pre-existing output + fault-injected MemoryError at S5's encode → prior bytes byte-identical, no 0-byte file (§8.4 m
+ethod); the mid-write cases pin the D-50 failure-arm ordering — on Windows an `os.remove` on the still-open handle raises PermissionError which a best-effort clause swallows and the partial file would
+ SURVIVE, which is exactly why close-before-remove is pinned (the POSIX CI cannot observe that mode — remove-while-open succeeds there — so the pinned ordering itself, not the CI environment, is what 
+rules the Windows mode out; probe appendix/32-rev8-fdclose-probes.py asserts fd.closed at remove time); documented assert-or-accept matrix entry for an ALIASED target (symlink to a regular file) with 
+a mid-write failure: the opened name is removed and the aliased file's partial residue is R-1b (§10.1) — accepted, not asserted ; KeyboardInterrupt sub-case (D-51, closes adv-c8 F-01 = SR7-F-02; probe
+ appendix/36-rev9-ki-argparse-probes.py P1/P2): a KeyboardInterrupt raised inside the write stage (the live probe faults `fd.write` after a successful open on a pre-existing target; in CI, inject the 
+exception class — the FIFO-blocked-write + SIGINT form is the same window) runs the D-48/D-50 failure arm — the partial target is REMOVED, the close-before-remove ordering applies to the KI class like
+ any other — and the KI then propagates: the process exits OUTSIDE the 0/1 matrix (shell-observed 130 on SIGINT; see the §6.4 signal note), stdout empty; the except-Exception build that would leave th
+e partial file is NON-CONFORMING (probe P2 demonstrates the forbidden divergence the D-51 choice closes); SINGLE-KI SCOPE (D-53, closes adv-c9 F-01; probe appendix/39b P1a/P1b live, control P1c): the 
+removal assertion above holds for the SINGLE-KI form only — a SECOND SIGINT delivered INSIDE the failure arm (at its `fd.close()`/`os.remove`) aborts the compensation mid-flight, KI propagates, and th
+e partial target SURVIVES: the documented assert-or-accept matrix entry is that this residue is R-5 (§10.1) — accepted, not asserted (T-C8 asserts the single-KI outcome and documents the double-KI res
+idue); KI-AT-OPEN entry (D-54, closes adv-c9 F-02; probe appendix/39b P2a/P2b live): a SIGINT delivered while `open()` is blocked (FIFO, no reader) makes `open()` itself raise KI with `fd` never bound
+ — NO remove runs and a pre-existing target may be left 0-byte; that outcome is the D-54 at-open classification and its residue is R-6 (§10.1) — documented, not asserted as a target-state contract; AT
+-OPEN MEMORYERROR entry (D-57, closes adv-c11 F-01; live probe appendix/51-rev12-adv11-folds-probes.py B1/B2): a MemoryError faulted at the open wrapper's allocation (after the kernel applied O_CREAT|
+O_TRUNC) leaves `fd` never bound — NO remove runs, the run reports E-MEM's write-phase form and exits 1, and an ABSENT target is left CREATED 0-byte / a PRE-EXISTING target TRUNCATED 0-byte; that resi
+due is the SAME R-6 record with its trigger widened to "KI or MemoryError at open" — documented assert-or-accept, not a compensated outcome | REQ-010/D-33/D-43/D-46/D-50/D-51/D-53/D-54/D-57/R-1b/R-5/R
+-6 |
+===== T-C16 (chars 126424..129136) =====
+T-C16 | E-MEM fault form | child process run under a low `RLIMIT_AS` (resource limit set before exec — an environment control, not a mock) on a valid input too large for the capped address space → std
+err matches an E-MEM phase form (`out of memory reading/while converting/writing ...`); ANY of the phase forms is the accepted assertion, because which phase trips under RLIMIT_AS is build-dependent (
+a chunked write may OOM at write, a bulk read at read, the row-list build at parse) — the test must not force a specific one; exit 1, stdout empty, no partial output file left (outside the recorded D-
+53/R-5 arm-abort residue — a second KI or second MemoryError inside the failure arm — per D-56(a)); variant with a pre-existing output file: the state assertion DEPENDS ON THE OBSERVED PHASE FORM of t
+hat run — if the form is a PRE-OPEN phase (reading / while converting), the prior bytes must be byte-identical after the failed run (D-43: no truncation has happened at those boundaries); if the form 
+is the WRITE phase (post-open, `out of memory writing <out>`), the pinned D-33/D-46 compensation REMOVES the target (open already truncated it), so the correct assertion is that the path is ABSENT — u
+nless the compensation itself is aborted mid-flight per D-53/R-5 (a SECOND KI, or a second MemoryError — any non-OSError — landing inside the failure arm), in which case the partial file is PRESENT an
+d that outcome is the recorded residue, not a contract violation (adv-c10 F-01, decision D-56(a); live probe appendix/47 P1a — partial PRESENT at this exact phase-form stderr line, control P1b single-
+MemoryError removal, P1c pure-RLIMIT_AS honest negative) — no conforming mechanism can otherwise leave it present: after a successful open the every-exception compensation removes the target, and a re
+move failure on a regular file is R-1's pathological-only residue, unreachable under RLIMIT_AS fault injection (SR6-F-04: the former "(or byte-identical)" slack is deleted — it admitted a compensation
+-less build on the byte-identical branch) and an at-open failure (OSError or MemoryError, D-46/D-57) never ran the compensation — its 0-byte residue is the recorded R-6/D-57 class, not this sentence's
+ concern — never still present with foreign bytes OUTSIDE the D-53 arm-abort residue. The test must read the phase from the stderr form and assert the matching state; asserting byte-identity unconditi
+onally (v6 wording, "form-independent") is non-conforming — a chunked-write build that OOMs at write deletes the pre-existing file BY DESIGN (adv-c6 F-01; live probes appendix/30b-adv-c6-reaim-probes.
+py P2/P2b, re-aimed per SR7-F-03; historical: appendix/29b P2/P2b) | REQ-007/NFR-005/E-MEM/D-43/D-44/D-46/D-50 |

@@ -1,0 +1,14 @@
+{
+  "name": "men",
+  "files": [
+    {
+      "path": "requirement.json",
+      "template": "builtin:men"
+    }
+  ],
+  "links": {
+    "traceability": {
+      "enabled": false
+    }
+  }
+}

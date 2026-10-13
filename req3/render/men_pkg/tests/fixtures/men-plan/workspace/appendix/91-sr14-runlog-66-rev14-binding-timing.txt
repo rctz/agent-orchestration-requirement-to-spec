@@ -1,0 +1,36 @@
+PASS - A1 four cells agree on (nrec, final_line)
+PASS - A2 payload shape as cited
+PASS - A3 output document sane (2 of 10 fields kept, as 48c's baseline)
+payload: 55.0 MB / 250000 rows; doc 15.0 MB; results (250001, 250002)
+TWO-QUANTITY module-bound :  28.0 s   (48c regime)
+TWO-QUANTITY function-bound:  14.9 s   (55h regime)
+FUSED       module-bound :  22.3 s
+FUSED       function-bound:   9.1 s
+reader-only 0.8 s; dict+serialize 0.4 s
+binding gap (two-quantity): 1.88x; form gap module-bound: 1.25x; form gap function-bound: 1.63x
+PASS - B S-10 LF multi-quote: two-quantity == fused (table latch, full outcome)
+PASS - B S-10 LF multi-quote: last-record (state, open_rel) == table expectation
+PASS - B S-10 LF multi-quote: normative N=2, M=3
+PASS - B S-10 LF multi-quote: legacy first-latch computes open_rel=1 (M=2, void)
+PASS - B S-10 LF multi-quote: first-latch DIFFERS from the table latch
+PASS - B S-10b CRLF multi-quote: two-quantity == fused (table latch, full outcome)
+PASS - B S-10b CRLF multi-quote: last-record (state, open_rel) == table expectation
+PASS - B S-10b CRLF multi-quote: normative N=2, M=3
+PASS - B S-10b CRLF multi-quote: legacy first-latch computes open_rel=1 (M=2, void)
+PASS - B S-10b CRLF multi-quote: first-latch DIFFERS from the table latch
+PASS - B S-10c bare-CR multi-quote: two-quantity == fused (table latch, full outcome)
+PASS - B S-10c bare-CR multi-quote: last-record (state, open_rel) == table expectation
+PASS - B S-10c bare-CR multi-quote: normative N=2, M=3
+PASS - B S-10c bare-CR multi-quote: legacy first-latch computes open_rel=1 (M=2, void)
+PASS - B S-10c bare-CR multi-quote: first-latch DIFFERS from the table latch
+PASS - B T-C7 single-quote: two-quantity == fused (table latch, full outcome)
+PASS - B T-C7 single-quote: last-record (state, open_rel) == table expectation
+PASS - B T-C7 single-quote: normative N=2, M=2
+PASS - B doubled quotes, closed: two-quantity == fused (table latch, full outcome)
+PASS - B doubled quotes, closed: last-record (state, open_rel) == table expectation
+PASS - B doubled re-open, unclosed later line: two-quantity == fused (table latch, full outcome)
+PASS - B doubled re-open, unclosed later line: last-record (state, open_rel) == table expectation
+PASS - B doubled re-open, unclosed later line: normative N=2, M=2
+B3-class shape-vs-shape (first latch): PASS (the two shapes agree with each other)
+PASS - B-CORPORA all six corpora exercised
+TOTAL: 27 checks, 0 FAILURES
