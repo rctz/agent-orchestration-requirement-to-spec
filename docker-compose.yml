@@ -1,6 +1,16 @@
-# req3 — docker compose (design §13).
-# First real deployment in M4 via scripts/deploy.sh; hardened in M9
-# (healthchecks, memory limits, host repo dir mount for repo_allowed_roots).
+# req3 — docker compose (design §13, hardened in M9).
+# Deploy via scripts/deploy.sh (rsync + `docker compose up -d --build`).
+#
+# M9 hardening notes:
+# - healthchecks on both services; gateway waits for a healthy opencode
+# - memory limits so req3 can never starve the neighbour services on a
+#   shared host (risk table §7 of the plan)
+# - opencode port 4096 is NEVER published (design §11)
+# - gateway :7790 published on all interfaces: the host is a home-LAN box
+#   behind NAT and the API is bearer-key guarded; localhost publishing is
+#   kept for SSH tunnels (ssh -L 7790:localhost:7790). No ufw rule is
+#   needed — docker-published ports bypass ufw INPUT, and the host has no
+#   WAN interface.
 name: req3
 services:
   gateway:
@@ -8,7 +18,7 @@ services:
       context: .
       dockerfile: docker/gateway.Dockerfile
     ports:
-      - "7790:7790"        # published; ufw rule needs owner approval (M9)
+      - "7790:7790"
     env_file: .env
     environment:
       REQ3_CONFIG: /app/config.yaml
@@ -16,8 +26,23 @@ services:
       - req3-data:/data
       - /home/pi/req3-data/repos:/repos:ro
     depends_on:
-      - opencode
+      opencode:
+        condition: service_healthy
     restart: unless-stopped
+    mem_limit: 1g
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request,sys;
+          sys.exit(0 if urllib.request.urlopen(
+          'http://127.0.0.1:7790/healthz', timeout=5).status == 200 else 1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
   opencode:
     build:
       context: .
@@ -27,5 +52,20 @@ services:
     volumes:
       - req3-data:/data
     restart: unless-stopped
+    mem_limit: 2g
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:4096/agent', {headers:
+          {Authorization: 'Basic ' + Buffer.from('opencode:' +
+          (process.env.OPENCODE_SERVER_PASSWORD || '')).toString('base64')}}
+          ).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 volumes:
   req3-data:

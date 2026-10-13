@@ -1,0 +1,10 @@
+# Answers implied by the v2 final requirements (05-requirements-v5.md
+# decisions D-01..D-07). Substring-matched against req3 questions.
+bool: Reject bool with ValueError (bool subclasses int but is never a temperature)
+subclass: Reject ALL int/float subclasses (exact types only: type(c) in (int, float))
+NaN: Propagate unchanged per IEEE-754 (NaN stays NaN, inf stays inf)
+non-finite: Propagate unchanged per IEEE-754 (NaN stays NaN, inf stays inf)
+round: Python round() semantics (banker's rounding), no decimal module
+int input: Accept int inputs, widened to float
+overflow: Ints beyond float range raise ValueError (OverflowError caught and re-raised, never escapes)
+10**: Ints beyond float range raise ValueError
