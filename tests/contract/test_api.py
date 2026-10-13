@@ -200,3 +200,17 @@ def test_x_api_key_header_accepted(client):
     assert ok.status_code == 200
     bad = client.get("/v1/jobs", headers={"X-API-Key": "wrong"})
     assert bad.status_code == 401
+
+
+def test_extra_api_keys_accepted(client, monkeypatch):
+    """D16: per-caller keys via REQ3_API_KEYS (comma-separated)."""
+    monkeypatch.setenv("REQ3_API_KEYS", "men-key-1,men-key-2")
+    ok = client.get("/v1/jobs", headers={"X-API-Key": "men-key-1"})
+    assert ok.status_code == 200
+    bearer = client.get("/v1/jobs",
+                        headers={"Authorization": "Bearer men-key-2"})
+    assert bearer.status_code == 200
+    bad = client.get("/v1/jobs", headers={"X-API-Key": "men-key-3"})
+    assert bad.status_code == 401
+    main = client.get("/v1/jobs", headers=AUTH)  # main key still valid
+    assert main.status_code == 200
