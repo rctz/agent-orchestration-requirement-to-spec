@@ -204,7 +204,12 @@ async def a2a(request: Request) -> JSONResponse:
                                    "message/send needs text for a new job")
                 payload: dict[str, Any] = {"prompt": text}
                 if isinstance(data.get("options"), dict):
-                    payload.update(data["options"])
+                    # v2/contract wire shape: the data part carries an
+                    # "options" object (output_format, project_name, ...).
+                    # It maps to CreateJobRequest.options (JobOptions) —
+                    # flattening it onto the top level 500s because
+                    # CreateJobRequest is extra="forbid".
+                    payload["options"] = data["options"]
                 if isinstance(data.get("repo"), dict):
                     payload["repo"] = data["repo"]
                 if data.get("callback_url"):

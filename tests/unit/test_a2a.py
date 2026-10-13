@@ -199,3 +199,30 @@ def test_a2a_message_send_creates_job(client):
     task = response.json()["result"]
     assert task["id"].startswith("j_")
     assert task["status"]["state"] in {"submitted", "working"}
+
+
+def test_a2a_message_send_with_options_creates_job(client):
+    """Regression (caller-pack bug, 2026-10-13): the contract client sends
+    an options object in the data part — the adapter must map it to
+    CreateJobRequest.options, not flatten it onto the top level
+    (extra="forbid" made every optioned start 500)."""
+    response = client.post(
+        "/a2a",
+        headers=AUTH,
+        json={
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "message/send",
+            "params": {"message": _msg([
+                {"kind": "text", "text": "Build a tiny CLI"},
+                {"kind": "data", "data": {"options": {
+                    "output_format": "men",
+                    "project_name": "canary",
+                }}},
+            ])},
+        },
+    )
+    assert response.status_code == 200, response.text
+    task = response.json()["result"]
+    assert task["id"].startswith("j_")
+    assert task["status"]["state"] in {"submitted", "working"}
