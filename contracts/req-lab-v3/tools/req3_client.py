@@ -5,7 +5,7 @@ callers keep their muscle memory: info / start / status / answer /
 approve / reject / wait / download / cancel.
 
 Usage:  python3 req3_client.py [--url URL] [--api-key KEY] <command> ...
-Env:    REQ3_URL (default http://172.28.50.183:7790), REQ3_API_KEY
+Env:    REQ3_URL (default https://req3.rctz.online), REQ3_API_KEY
 Auth:   X-API-Key header (also accepted: Authorization: Bearer).
 Long-running: minutes. `wait` polls until a gate or terminal state.
 """
