@@ -1,7 +1,7 @@
 ---
 name: req-lab-v3
-description: "Call req3: turns a raw requirement into a confirmed requirements document + review-checked design spec. Use when you need requirements or a spec produced. Long-running service you drive through gates (answer questions, approve) until artifacts download."
-version: 1.2.0
+description: "Call req3: turns a raw requirement into a confirmed requirements document + review-checked design spec. Use when you need requirements or a spec produced. Long-running service you drive through gates by relaying to your user (questions in, their answers and approval back) until artifacts download."
+version: 1.3.0
 ---
 
 # req-lab-v3 — calling guide
@@ -33,7 +33,7 @@ python3 tools/req3_client.py info
 start ──► working ──► input-required ──► working ──► ... ──► completed ──► download
              │             │
              │             ├─ gate=questions   → answer  (may repeat, <=5 rounds)
-             │             └─ gate=confirm     → approve or reject
+             │             └─ gate=confirm     → show user → their approve/reject
              └──► failed (terminal; error says why)
 ```
 
@@ -88,13 +88,25 @@ python3 tools/req3_client.py answer <task_id> Q-01="user's reply" Q-02="user's r
   for unattended/batch runs, or when the user says "take the defaults".
 - More question rounds may follow — relay again and repeat.
 
-**Gate `confirm_requirements`** — requirements are final-drafted and need
-your approval before the spec is built:
+**Gate `confirm_requirements`** — the requirements draft is finished and
+**the APPROVE/REJECT decision belongs to your USER**. You must:
+
+1. Print the full draft and show it to the user:
 
 ```bash
-python3 tools/req3_client.py approve <task_id>          # OK, build the spec
-python3 tools/req3_client.py reject <task_id> "add Kelvin support"   # send back
+python3 tools/req3_client.py preview <task_id>
 ```
+
+2. Get the user's explicit verdict, then submit it on their behalf:
+
+```bash
+python3 tools/req3_client.py approve <task_id>          # user said OK
+python3 tools/req3_client.py reject <task_id> "the user's change request"
+```
+
+Never approve on your own judgment — approving locks the requirements and
+starts the spec build. (If the gate sits unanswered past its expiry, the
+system auto-approves and marks it — so surface it to the user promptly.)
 
 ### 4. At `completed` — download the documents
 
@@ -125,6 +137,8 @@ python3 tools/req3_client.py cancel <task_id>    # abort a running job
   decimals"`. You are the messenger, not the decider (unless delegated).
 - **approve/reject only exist at the confirm gate**; answer only at the
   questions gate. The client's printout tells you which gate you are at.
+  At BOTH gates you act for the user: relay questions, show the draft,
+  submit THEIR verdict — never decide for them unless they delegated it.
 - **failed is recoverable by resubmission**: the error line
   `[code] message` says what went wrong; fix the input and `start` again.
 - Artifacts are English regardless of the prompt language; question text

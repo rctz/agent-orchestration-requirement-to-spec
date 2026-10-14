@@ -108,12 +108,15 @@ def _fmt_task(task: dict) -> str:
     elif state == "input-required" and gate == "confirm_requirements":
         prev = data.get("requirements_preview") or {}
         reqs = prev.get("requirements") or []
-        out += "\n  ACTION REQUIRED: requirements are ready for your confirmation."
+        out += ("\n  ACTION REQUIRED: the APPROVE/REJECT decision belongs to"
+                "\n  YOUR USER, not to you. Show them the requirements"
+                "\n  (command below prints the full draft), get their explicit"
+                "\n  verdict, then submit it. If the gate expires unused, the"
+                "\n  system auto-approves — so make sure the user really saw it.")
         out += f"\n    {len(reqs)} requirements, goal: {str(prev.get('goal', ''))[:200]}"
-        out += "\n  Approve to continue to the spec phase:"
-        out += f"\n    req3_client.py approve {task.get('id', '<id>')}"
-        out += "\n  ...or send them back with a reason:"
-        out += f"\n    req3_client.py reject {task.get('id', '<id>')} \"what to change\""
+        out += f"\n    req3_client.py preview {task.get('id', '<id>')}   # full draft to show"
+        out += f"\n  User says OK:      req3_client.py approve {task.get('id', '<id>')}"
+        out += f"\n  User wants changes: req3_client.py reject {task.get('id', '<id>')} \"their reason\""
     elif state == "completed":
         out += "\n  DONE. Download the artifacts with:"
         out += f"\n    req3_client.py download {task.get('id', '<id>')} --out <dir>"
@@ -241,6 +244,44 @@ def cmd_download(a):
     return 0
 
 
+def cmd_preview(a):
+    status, task = rpc(a.url, "tasks/get", {"id": a.task_id})
+    parts = task.get("status", {}).get("message", {}).get("parts", [])
+    data = next((p.get("data", {}) for p in parts if p.get("kind") == "data"), {})
+    prev = data.get("requirements_preview")
+    if not prev:
+        sys.exit(f"no requirements preview available (state must be the "
+                 f"confirm gate); got gate={data.get('gate')!r}")
+    print(f"PROJECT : {prev.get('project')}  (v{prev.get('version')}, "
+          f"size {prev.get('size')})")
+    print(f"GOAL    : {prev.get('goal')}")
+    print(f"USERS   : {'; '.join(prev.get('users', []))}")
+    scope = prev.get("scope") or {}
+    print(f"IN SCOPE:")
+    for i in scope.get("in", []):
+        print(f"  + {i}")
+    print(f"OUT OF SCOPE:")
+    for o in scope.get("out", []):
+        print(f"  - {o}")
+    decs = prev.get("decisions") or []
+    if decs:
+        print("\nDECISIONS (from the user's answers):")
+        for d in decs:
+            print(f"  {d.get('id')} [{d.get('source')}] {str(d.get('answer'))[:160]}")
+    print(f"\nREQUIREMENTS ({len(prev.get('requirements', []))}):")
+    for r in prev.get("requirements", []):
+        print(f"\n  {r.get('id')} [{r.get('priority', '?')}] {r.get('title')}")
+        print(f"    {r.get('body')}")
+        for i, ac in enumerate(r.get("acceptance", []) or [], 1):
+            print(f"    AC-{i}: {ac}")
+    ki = prev.get("known_issues") or []
+    if ki:
+        print("\nOPEN NOTES:")
+        for k in ki:
+            print(f"  ! {k}")
+    return 0
+
+
 def cmd_cancel(a):
     status, task = rpc(a.url, "tasks/cancel", {"id": a.task_id})
     if status != 200:
@@ -256,6 +297,10 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("info").set_defaults(fn=cmd_info)
+
+    p = sub.add_parser("preview")
+    p.add_argument("task_id")
+    p.set_defaults(fn=cmd_preview)
 
     p = sub.add_parser("start")
     p.add_argument("requirement")
