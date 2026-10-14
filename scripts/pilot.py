@@ -294,10 +294,17 @@ def run_judge(gw: Gateway, project: str, v2_dir: Path, out_dir: Path) -> dict:
     )
     verdict = judge_call(prompt)
     verdict["a_is_v3"] = a_is_v3
-    verdict["better_is_v3"] = (
-        "v3" if verdict.get("better") in ("A", "B")
-        and (verdict["better"] == "A") == a_is_v3 else "tie"
-    )
+    # Map the blind letter onto teams honestly: "tie" only when the judge
+    # says tie. (A bug recorded every v2 win as "tie" — fixed 2026-10-14;
+    # historical judge files were recomputed from their raw fields.)
+    if verdict.get("better") == "tie":
+        verdict["better_is_v3"] = "tie"
+    elif verdict.get("better") in ("A", "B"):
+        verdict["better_is_v3"] = (
+            "v3" if (verdict["better"] == "A") == a_is_v3 else "v2"
+        )
+    else:
+        verdict["better_is_v3"] = "unparsed"
     (out_dir / "judge").mkdir(parents=True, exist_ok=True)
     (out_dir / "judge" / f"{project}.json").write_text(
         json.dumps(verdict, indent=2, ensure_ascii=False) + "\n")
@@ -378,6 +385,8 @@ def write_report(out_dir: Path, v2_root: Path, judge_results: dict) -> None:
                 if v.get("better_is_v3") == "v3"]
         ties = [p for p, v in judge_results.items()
                 if v.get("better_is_v3") == "tie"]
+        losses = [p for p, v in judge_results.items()
+                  if v.get("better_is_v3") == "v2"]
         missing = {
             p: (v.get("missing_in_a") if v.get("a_is_v3")
                 else v.get("missing_in_b"))
@@ -386,9 +395,9 @@ def write_report(out_dir: Path, v2_root: Path, judge_results: dict) -> None:
         missing_real = {p: x for p, x in missing.items() if x}
         lines += [
             (f"- Blind A/B (v3 ≥ v2 on ≥ 4/5): v3 wins **{len(wins)}** "
-             f"(ties {len(ties)}) — "
-             f"{'PASS' if len(wins) >= 4 else 'FAIL'}; wins: "
-             f"{', '.join(wins) or '-'}"),
+             f"(ties {len(ties)}, losses {len(losses)}) — "
+            f"{'PASS' if len(wins) + len(ties) >= 4 else 'FAIL'}; wins: "
+            f"{', '.join(wins) or '-'}; losses: {', '.join(losses) or '-'}"),
             (f"- v3 missing a prompt-implied requirement v2 had: "
              f"{'none — PASS' if not missing_real else 'REVIEW: see judge/*.json ' + str(list(missing_real))}"),
             "", "## Judge verdicts (blind, randomized order)", "",

@@ -1,25 +1,25 @@
 {
-  "job_id": "j_6e3af82f45c4",
+  "job_id": "j_081df72cfe8e",
   "status": "completed_with_issues",
-  "wall_s": 2104.4,
-  "waiting_s": 16.9,
+  "wall_s": 2924.9,
+  "waiting_s": 16.8,
   "tokens": {
-    "req-designer": 99447,
-    "req-reviewer": 26483,
-    "spec-designer": 48608,
-    "spec-reviewer": 63502
+    "req-designer": 123264,
+    "req-reviewer": 33626,
+    "spec-designer": 51568,
+    "spec-reviewer": 58042
   },
-  "tokens_total": 238040,
+  "tokens_total": 266500,
   "rounds": {
     "req_review": 2,
     "spec_review": 2
   },
   "versions": {
-    "requirements": 4,
+    "requirements": 3,
     "spec": 2
   },
-  "known_issues": 2,
+  "known_issues": 8,
   "error": null,
-  "spec_size_kb": 25.8,
+  "spec_size_kb": 23.1,
   "project": "simple-shopping-cart-0fc0"
 }

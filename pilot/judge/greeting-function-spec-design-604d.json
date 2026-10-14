@@ -10,5 +10,5 @@
   ],
   "reasons": "Both fully cover behaviors 1–6 and are implementable, but A eliminates more interpretation: explicit dispatch precedence, boxed-String handling, named-export-only contract with link-error semantics, 15 concrete ACs including purity probes, and a claimed complete Thai annex versus B's deferred open item. Costs for A: invented envelope (1 MiB, Node≥16) and truncation; B is leaner and creep-free but lighter and leaves default-export unstated.",
   "a_is_v3": false,
-  "better_is_v3": "tie"
+  "better_is_v3": "v2"
 }

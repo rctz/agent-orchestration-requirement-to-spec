@@ -1,20 +1,19 @@
 {
-  "better": "B",
+  "better": "A",
   "missing_in_a": [
-    "Dynamic topic discovery endpoint (GET /api/topics)",
-    "Publishing to arbitrary graph topics without preconfigured static routes",
-    "Runtime, client-supplied type resolution for topics/services",
-    "Dedicated health endpoint requirement",
-    "Latest-message whitelist configured via ROS parameters rather than static YAML file"
+    "HTTP /health liveness endpoint",
+    "GET /endpoints route discovery/listing of declared resources",
+    "per-request logging requirement"
   ],
   "missing_in_b": [
-    "Authentication (bearer token; 401 on missing/wrong token)",
-    "Hard request-size limit (413) and concurrent-connection admission with explicit 503 at cap",
-    "Config/route-count limits with distinct startup error/exit codes",
-    "405 method-not-allowed handling",
-    "Malformed-input resilience and timeout-leak (RSS) stress acceptance criteria"
+    "max request body size limit with 413",
+    "concurrent-connection cap with explicit 503 admission behavior",
+    "max declared-route count limit",
+    "differentiated startup exit codes per config failure mode",
+    "constant-time token/key comparison",
+    "service-timeout abandonment and late-completion handling"
   ],
-  "reasons": "Both elaborate heavily beyond the one-line Thai prompt, but B's requirements pair every REQ with crisp Given/When/Then acceptance tests and its spec is self-contained (components, interfaces, data model, uniform error mapping) — implementable without chasing cross-references. A is gateway-faithful with a tight envelope and auth, but drowns in D-/F-/appendix citations to unseen documents, truncates mid-requirement, and pins many invented limits, harming readability and question-free implementability.",
+  "reasons": "Both cover core topic publish/read and service bridging with testable ACs. A defines a closed-world envelope (size/conn/route limits, exit-code taxonomy, error-code vocabulary, timeout abandonment, strict codec rules) and a spec that pre-answers concurrency, admission-control, and race-condition questions, with tight requirements–spec traceability. B is cleaner and adds ops endpoints, but leaves body size, connection caps, and mapping edge cases open. A wins on implementability, edge completeness, and consistency despite verbose process metadata.",
   "a_is_v3": false,
-  "better_is_v3": "v3"
+  "better_is_v3": "v2"
 }

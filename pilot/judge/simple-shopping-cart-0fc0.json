@@ -1,11 +1,10 @@
 {
   "better": "A",
   "missing_in_a": [
-    "Concrete catalog pinned at requirements level (B fixes exact products/prices P-001 กาแฟ ฿45.00, P-002 ชา ฿15.50, P-003 น้ำดื่ม ฿7.25; A leaves names and some prices as implementer-chosen placeholders)",
-    "Whitespace-only quantity string explicitly listed as invalid input (B's REQ-007 includes \"   \")"
+    "Thai translation physically present in the delivered document (B's revision log records a complete Thai annex appended; A keeps its canonical record English-only and defers translation to a later file-production step)"
   ],
   "missing_in_b": [],
-  "reasons": "Both fully cover the prompt with testable criteria and implementable specs. A is lean and consistent: uniform Given/When/Then, typed error contracts, negligible added scope. B adds useful concreteness (pinned catalog, ฿-regex, byte-identical state preservation, parser/pending-edit edge cases) but also scope creep (mandatory ฿ format, requirement.json/plan.md/traceability.json/bundle deliverables, browser matrix), heavy revision meta-noise, probe-script references, and a P-002/P-002 typo. A wins on scope discipline, consistency, and self-containedness.",
+  "reasons": "Both cover every prompt item. A edges out: uniformly testable Given/When/Then acceptance per requirement, an explicit out-of-scope list mirroring the prompt's exclusions, self-consistent traceability, and near-zero scope creep (only the THB-prefix format, flagged as an assumption). B is stronger on edge-case implementability (validation order, parser grammar, pending-edit contract) but adds unrequested constraints (Thai-only UI, ฿-regex format, extra pipeline artifacts), a P-002-duplicated catalog typo, and heavy unverifiable process metadata.",
   "a_is_v3": true,
   "better_is_v3": "v3"
 }

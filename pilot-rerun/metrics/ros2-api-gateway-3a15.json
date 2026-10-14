@@ -1,22 +1,25 @@
 {
-  "job_id": "j_e413a598ff9b",
-  "status": "running",
-  "wall_s": null,
-  "waiting_s": 9.4,
+  "job_id": "j_27042fc9d554",
+  "status": "completed_with_issues",
+  "wall_s": 2420.6,
+  "waiting_s": 6.8,
   "tokens": {
-    "req-designer": 137804,
-    "req-reviewer": 36199
+    "req-designer": 54284,
+    "req-reviewer": 29383,
+    "spec-designer": 56794,
+    "spec-reviewer": 61873
   },
-  "tokens_total": 174003,
+  "tokens_total": 202334,
   "rounds": {
     "req_review": 2,
-    "spec_review": 0
+    "spec_review": 2
   },
   "versions": {
-    "requirements": 4,
-    "spec": 0
+    "requirements": 3,
+    "spec": 2
   },
-  "known_issues": 3,
+  "known_issues": 5,
   "error": null,
+  "spec_size_kb": 30.2,
   "project": "ros2-api-gateway-3a15"
 }
