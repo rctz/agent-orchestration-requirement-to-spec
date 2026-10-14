@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """req3_client — stdlib-only caller client for the req3 Requirement & Spec
-service (contract pack). Mirrors the req-lab-v2 client surface so v2-era
-callers keep their muscle memory: info / start / status / answer /
-approve / reject / wait / download / cancel.
+service (contract pack). Commands: info / start / status /
+answer / approve / reject / wait / download / cancel.
 
 Usage:  python3 req3_client.py [--url URL] [--api-key KEY] <command> ...
 Env:    REQ3_URL (default https://req3.rctz.online), REQ3_API_KEY
@@ -74,15 +73,48 @@ def rpc(base: str, method: str, params: dict) -> tuple[int, dict]:
 
 
 def _fmt_task(task: dict) -> str:
+    """Render a task so a human OR an agent can act on it: every gate shows
+    the full questions / instructions, nothing important is truncated."""
     state = task.get("status", {}).get("state", "?")
     parts = task.get("status", {}).get("message", {}).get("parts", [])
-    text = next((p.get("text", "") for p in parts if p.get("kind") == "text"), "")
     data = next((p.get("data", {}) for p in parts if p.get("kind") == "data"), {})
     out = f"task {task.get('id', '?')}: {state}"
-    if text:
-        out += f"\n  {text[:300]}"
-    if data:
-        out += f"\n  {json.dumps(data, ensure_ascii=False)[:400]}"
+    gate = data.get("gate")
+
+    if state == "input-required" and gate == "questions":
+        out += "\n  ACTION REQUIRED: answer the questions below, then run:"
+        out += f"\n    req3_client.py answer {task.get('id', '<id>')} Q-01=\"your answer\" Q-02=\"...\""
+        qs = data.get("questions") or []
+        for q in qs:
+            out += f"\n  {q.get('id')} [{q.get('kind')}] {q.get('text', '')}"
+            for opt in q.get("options") or []:
+                out += f"\n      - {opt}"
+            out += f"\n      default: {q.get('default_answer', '')}"
+        if data.get("questions_expire_at"):
+            out += ("\n  (unanswered questions expire at "
+                    f"{data['questions_expire_at']}; the default is applied automatically)")
+    elif state == "input-required" and gate == "confirm_requirements":
+        prev = data.get("requirements_preview") or {}
+        reqs = prev.get("requirements") or []
+        out += "\n  ACTION REQUIRED: requirements are ready for your confirmation."
+        out += f"\n    {len(reqs)} requirements, goal: {str(prev.get('goal', ''))[:200]}"
+        out += "\n  Approve to continue to the spec phase:"
+        out += f"\n    req3_client.py approve {task.get('id', '<id>')}"
+        out += "\n  ...or send them back with a reason:"
+        out += f"\n    req3_client.py reject {task.get('id', '<id>')} \"what to change\""
+    elif state == "completed":
+        out += "\n  DONE. Download the artifacts with:"
+        out += f"\n    req3_client.py download {task.get('id', '<id>')} --out <dir>"
+    elif state == "failed":
+        err = data.get("error") or {}
+        out += (f"\n  FAILED (phase {err.get('phase', '?')}): "
+                f"[{err.get('code')}] {err.get('message', '')}")
+    else:
+        text = next((p.get("text", "") for p in parts if p.get("kind") == "text"), "")
+        if text:
+            out += f"\n  {text[:500]}"
+        if data:
+            out += f"\n  {json.dumps(data, ensure_ascii=False)[:500]}"
     return out
 
 
@@ -127,9 +159,12 @@ def cmd_status(a):
 
 def cmd_answer(a):
     answers = dict(item.split("=", 1) for item in a.answers)
+    data: dict = {"answers": answers}
+    if getattr(a, "defaults", False):
+        data["apply_defaults"] = True
     status, task = rpc(a.url, "message/send", {"message": {
         "role": "user", "taskId": a.task_id,
-        "parts": [{"kind": "data", "data": {"answers": answers}}],
+        "parts": [{"kind": "data", "data": data}],
     }})
     if status != 200:
         sys.exit(f"answer failed ({status}): {task}")
@@ -225,7 +260,9 @@ def main() -> int:
 
     p = sub.add_parser("answer")
     p.add_argument("task_id")
-    p.add_argument("answers", nargs="+", metavar="Q-ID=answer")
+    p.add_argument("answers", nargs="*", metavar="Q-ID=answer")
+    p.add_argument("--defaults", action="store_true",
+                   help="accept the default answer for every unanswered question")
     p.set_defaults(fn=cmd_answer)
 
     p = sub.add_parser("approve")

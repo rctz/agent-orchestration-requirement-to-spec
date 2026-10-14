@@ -1,96 +1,129 @@
 ---
 name: req-lab-v3
-description: "Call req3: turn a raw requirement into a review-checked, implementable spec bundle (requirements + spec, any output format). Use when you need requirements/specs produced. Drop-in successor to req-lab-v2."
-version: 1.0.0
+description: "Call req3: turns a raw requirement into a confirmed requirements document + review-checked design spec. Use when you need requirements or a spec produced. Long-running service you drive through gates (answer questions, approve) until artifacts download."
+version: 1.1.0
 ---
 
-# req-lab-v3 — how to call this agent
+# req-lab-v3 — calling guide
 
-You are the **caller** (consumer). This agent turns a raw requirement into a
-confirmed requirements document plus a bounded, review-checked design spec,
-delivered as versioned artifacts in the output format you choose. It is
-long-running (**15–50 minutes** typical) and pauses to ask clarifying
-questions; unanswered questions expire after 24 h and the system applies
-each question's recorded default (marked as system-selected).
+req3 is a **remote service** that produces a requirements document and a
+design spec from a raw requirement. You (the calling agent) submit the
+user's requirement text, then drive the job through up to two kinds of
+gates, then download the finished documents.
 
-Everything you need is this file + one tool beside it:
+You talk to it ONLY through the client in this folder — no HTTP crafting
+needed:
 
 ```
-<this folder>/tools/req3_client.py    # stdlib-only Python 3 client — THE way to call
+tools/req3_client.py    # stdlib-only, Python 3, no dependencies
 ```
 
-Gateway URL: `https://req3.rctz.online` (override with `--url` or env
-`REQ3_URL`). **Auth: every call must carry `X-API-Key`** (or
-`Authorization: Bearer`) — pass `--api-key <KEY>` or set env `REQ3_API_KEY`,
-or ship the key in `API_KEY.txt` beside this SKILL.md (one line). Check
-reachability first:
+- Endpoint: `https://req3.rctz.online` (default; override with `--url` or env `REQ3_URL`)
+- Auth: the API key ships in `API_KEY.txt` beside this file and is read
+  automatically. Nothing to configure.
+- Sanity check before first use (should print an agent card JSON):
 
 ```bash
-REQ3_API_KEY=<key> python3 tools/req3_client.py info   # agent card JSON → alive
+python3 tools/req3_client.py info
 ```
 
-## The flow (this is the whole protocol)
+## The lifecycle you drive
+
+```
+start ──► working ──► input-required ──► working ──► ... ──► completed ──► download
+             │             │
+             │             ├─ gate=questions   → answer  (may repeat, <=5 rounds)
+             │             └─ gate=confirm     → approve or reject
+             └──► failed (terminal; error says why)
+```
+
+Run these in order. After every command the client prints the state AND
+exactly what to do next — follow that.
+
+### 1. Submit the requirement (verbatim!)
 
 ```bash
-# 1. start a new project  (text = raw requirement, any language, verbatim)
 python3 tools/req3_client.py start "We need a web UI for borrowing lab equipment..." \
-    --output-format men          # men (default) | default | json | <registered>
-
-# 2. wait until it needs you (prints state changes, exits at a gate)
-python3 tools/req3_client.py wait <task_id>
-
-# 3. at state input-required, either answer questions...
-python3 tools/req3_client.py answer <task_id> Q-01="int and float only" Q-02="Yes"
-#    ...or, at the confirm gate, approve / send back:
-python3 tools/req3_client.py approve <task_id>
-python3 tools/req3_client.py reject <task_id> "add Kelvin support"
-
-# 4. at state completed, download the artifacts
-python3 tools/req3_client.py download <task_id> [--out dir/]
+    --output-format default --project lab-equipment-ui
 ```
 
-States: `submitted → working → input-required → … → completed | failed`.
-You may cancel any time: `python3 tools/req3_client.py cancel <task_id>`.
+- The text is the user's raw requirement, **any language, passed verbatim —
+  never summarize or translate it**.
+- `--output-format default` -> `requirement.md` + `spec.md` + `manifest.json`.
+  Use `json` for raw canonical JSON. Omit only if the owner told you
+  otherwise.
+- Prints: `task <task_id>: ...` — **remember that id**, every later command
+  needs it.
 
-## Output formats
+### 2. Wait until the service needs you
 
-- `men` (**default**): Men's-orchestrator SPI bundle — `requirement.json`
-  + `spec.md` + `plan.md` + `traceability.json` in ONE delivery at
-  completion (v2 delivered in two pauses; v3 ships both stages together).
-  Byte-compatible with the v2 `men`/`men-spi`/`men-plan` converters.
-- `default`: `requirement.md` + `spec.md` (canonical markdown).
-- `json`: raw canonical JSON documents.
-- registered custom profiles: ask the req3 owner, or POST your own to
-  `/v1/output-profiles` (sandboxed Jinja2, deterministic).
+```bash
+python3 tools/req3_client.py wait <task_id>
+```
 
-All deliveries include `manifest.json` (versions, sha256 file list,
-decisions, token/time metrics). Older artifact versions stay downloadable
-(`?version=N`).
+Polls and prints state changes; exits when the task reaches
+`input-required`, `completed`, or `failed`. The job is long-running —
+expect multiple `working` minutes between gates. You can also check any
+time with `status <task_id>`.
 
-## Differences from req-lab-v2 (migration notes)
+### 3. At `input-required` — read what the client prints and act
 
-| v2 | v3 |
-|---|---|
-| URL `https://req2.rctz.online` | `https://req3.rctz.online` (public via Cloudflare tunnel) |
-| API key for v2 gateway | new key for req3 (same `X-API-Key` header works) |
-| `--output-format men-spi` / `men-plan` | alias to `men` (both files always included) |
-| two deliveries (gate + completion) | one delivery at completion, all files |
-| poll only | poll, SSE (`/v1/jobs/{id}/events`), or signed webhooks (`--callback-url`; verify `X-Req3-Signature: sha256=HMAC-SHA256(body, REQ3_WEBHOOK_SECRET)`) |
-| sequential | up to 5 jobs run in parallel — submit freely |
+**Gate `questions`** — the client prints every question in full:
+id `[kind]` text, choice options, and a default answer. Answer ALL of them:
 
-## Machine contracts
+```bash
+python3 tools/req3_client.py answer <task_id> Q-01="int and float only" Q-02="Yes"
+```
 
-- OpenAPI (REST v1): `GET /v1/openapi.json` (bearer auth)
-- Agent card: `GET /.well-known/agent.json` (no auth) — also in this pack
-  as `card.json`
-- A2A JSON-RPC: `POST /a2a` — `message/send` (new job / answers / APPROVE /
-  REJECT: text), `tasks/get`, `tasks/cancel`. Same part shapes as v2.
+- Use the exact question ids shown (`Q-01=...`, quotes around values).
+- If you genuinely cannot decide a question: `answer <task_id> --defaults`
+  accepts every listed default.
+- More question rounds may follow — just `wait` again and repeat.
 
-## Behavior guarantees
+**Gate `confirm_requirements`** — requirements are final-drafted and need
+your approval before the spec is built:
 
-- Questions arrive in batches with a usable default answer each; expiry
-  applies defaults and marks them (nothing blocks forever).
-- Reviews are bounded (max rounds enforced server-side); only blocking
-  findings delay delivery; P2 advisory notes ship as `known_issues`.
-- Artifacts are deterministic pure renders of validated canonical JSON —
-  same input, byte-identical output.
+```bash
+python3 tools/req3_client.py approve <task_id>          # OK, build the spec
+python3 tools/req3_client.py reject <task_id> "add Kelvin support"   # send back
+```
+
+### 4. At `completed` — download the documents
+
+```bash
+python3 tools/req3_client.py download <task_id> --out ./req3-out/
+```
+
+Writes the files (e.g. `requirement.md`, `spec.md`, `manifest.json`) into
+the output dir. `manifest.json` lists every file with sha256 plus decision
+and metric summaries. Hand the documents to whoever asked.
+
+### Anytime
+
+```bash
+python3 tools/req3_client.py status <task_id>    # current state
+python3 tools/req3_client.py cancel <task_id>    # abort a running job
+```
+
+## Rules that matter
+
+- **One task per requirement.** Submit the text once; never re-submit while
+  a task is live — `wait` on it instead.
+- **Questions expire** after 24 h: unanswered ones get their default answer
+  applied automatically (marked `system_default_expired` in the manifest),
+  so nothing blocks forever — but answering is always better.
+- **Answers are free text** (or one of the printed options for `choice`).
+  State them as decisions, e.g. `Q-03="USD with 2 decimals"`.
+- **approve/reject only exist at the confirm gate**; answer only at the
+  questions gate. The client's printout tells you which gate you are at.
+- **failed is recoverable by resubmission**: the error line
+  `[code] message` says what went wrong; fix the input and `start` again.
+- Artifacts are English regardless of the prompt language; question text
+  comes back in the prompt's language.
+
+## Machine endpoints (optional, for direct integration)
+
+- Agent card (no auth): `GET /.well-known/agent.json`
+- REST API with OpenAPI spec: `GET /v1/openapi.json` (send header `X-API-Key`)
+- The client itself speaks the A2A JSON-RPC protocol (`POST /a2a`) —
+  `message/send`, `tasks/get`, `tasks/cancel` — if you prefer raw calls.
