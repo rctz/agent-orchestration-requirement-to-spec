@@ -1,7 +1,7 @@
 ---
 name: req-lab-v3
 description: "Call req3: turns a raw requirement into a confirmed requirements document + review-checked design spec. Use when you need requirements or a spec produced. Long-running service you drive through gates (answer questions, approve) until artifacts download."
-version: 1.1.0
+version: 1.2.0
 ---
 
 # req-lab-v3 — calling guide
@@ -69,16 +69,24 @@ time with `status <task_id>`.
 ### 3. At `input-required` — read what the client prints and act
 
 **Gate `questions`** — the client prints every question in full:
-id `[kind]` text, choice options, and a default answer. Answer ALL of them:
+id `[kind]` text, choice options, and a default answer.
+
+**WHO answers: these are product decisions owned by your USER.**
+Relay the questions to your user (show them verbatim, including options
+and defaults), collect their replies, then submit:
 
 ```bash
-python3 tools/req3_client.py answer <task_id> Q-01="int and float only" Q-02="Yes"
+python3 tools/req3_client.py answer <task_id> Q-01="user's reply" Q-02="user's reply"
 ```
 
 - Use the exact question ids shown (`Q-01=...`, quotes around values).
-- If you genuinely cannot decide a question: `answer <task_id> --defaults`
-  accepts every listed default.
-- More question rounds may follow — just `wait` again and repeat.
+- Answer EVERY question of the round before submitting.
+- Answer yourself ONLY when the user explicitly delegated the decisions to
+  you ("you decide"). Otherwise never invent answers — a wrong guess
+  becomes a permanent decision in the documents.
+- `answer <task_id> --defaults` accepts every listed default: use it only
+  for unattended/batch runs, or when the user says "take the defaults".
+- More question rounds may follow — relay again and repeat.
 
 **Gate `confirm_requirements`** — requirements are final-drafted and need
 your approval before the spec is built:
@@ -112,8 +120,9 @@ python3 tools/req3_client.py cancel <task_id>    # abort a running job
 - **Questions expire** after 24 h: unanswered ones get their default answer
   applied automatically (marked `system_default_expired` in the manifest),
   so nothing blocks forever — but answering is always better.
-- **Answers are free text** (or one of the printed options for `choice`).
-  State them as decisions, e.g. `Q-03="USD with 2 decimals"`.
+- **Answers are the USER's decisions, phrased as decisions** — free text
+  (or one of the printed options for `choice`), e.g. `Q-03="USD with 2
+  decimals"`. You are the messenger, not the decider (unless delegated).
 - **approve/reject only exist at the confirm gate**; answer only at the
   questions gate. The client's printout tells you which gate you are at.
 - **failed is recoverable by resubmission**: the error line

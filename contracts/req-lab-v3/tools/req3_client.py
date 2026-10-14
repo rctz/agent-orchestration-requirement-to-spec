@@ -91,8 +91,11 @@ def _fmt_task(task: dict) -> str:
     gate = data.get("gate")
 
     if state == "input-required" and gate == "questions":
-        out += "\n  ACTION REQUIRED: answer the questions below, then run:"
-        out += f"\n    req3_client.py answer {task.get('id', '<id>')} Q-01=\"your answer\" Q-02=\"...\""
+        out += ("\n  ACTION REQUIRED: these are PRODUCT DECISIONS owned by the"
+                "\n  requester. RELAY every question below to your user and"
+                "\n  submit THEIR replies — do not invent answers yourself,"
+                "\n  unless the user explicitly delegated the answers to you.")
+        out += f"\n    req3_client.py answer {task.get('id', '<id>')} Q-01=\"user's reply\" Q-02=\"...\""
         qs = data.get("questions") or []
         for q in qs:
             out += f"\n  {q.get('id')} [{q.get('kind')}] {q.get('text', '')}"
