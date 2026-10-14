@@ -2,6 +2,7 @@
 row, review rules, gates, expiry, resume) — all with the FakeExecutor."""
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 
@@ -406,3 +407,96 @@ async def test_cancel_during_phase_is_not_clobbered(tmp_path):
             await asyncio.sleep(0.5)  # let the runner step finish
             body = (await client.get(f"/v1/jobs/{job_id}", headers=AUTH)).json()
             assert body["status"] == "cancelled"
+
+
+def test_caller_project_name_not_clobbered_by_llm_doc(tmp_path):
+    """The LLM's doc.project must never overwrite the caller's project
+    (regression: a concurrent job's name leaked into this job's column)."""
+    fake = FakeExecutor(
+        [
+            design_reply(make_doc(project="totally-wrong-name"), []),
+            review_full([], verdict="pass"),
+        ]
+    )
+    app = create_app(_config(tmp_path), executor=fake)
+    with TestClient(app) as client:
+        job_id = _create(client, project_name="caller-name")
+        gate = _wait_status(client, job_id, {"input_required"})
+        assert gate["gate"] == "confirm_requirements"
+        body = client.get(f"/v1/jobs/{job_id}", headers=AUTH).json()
+        assert body["project"] == "caller-name"
+
+
+def test_project_adopted_from_doc_only_when_caller_silent(tmp_path):
+    fake = FakeExecutor(
+        [
+            design_reply(make_doc(project="llm-name"), []),
+            review_full([], verdict="pass"),
+        ]
+    )
+    app = create_app(_config(tmp_path), executor=fake)
+    with TestClient(app) as client:
+        job_id = _create(client)  # no project_name option
+        gate = _wait_status(client, job_id, {"input_required"})
+        assert gate["gate"] == "confirm_requirements"
+        body = client.get(f"/v1/jobs/{job_id}", headers=AUTH).json()
+        assert body["project"] == "llm-name"
+
+
+@pytest.mark.asyncio()
+async def test_executor_call_has_overall_time_budget(tmp_path):
+    """Transport retries + schema repairs share ONE timeout budget: a repair
+    call that overruns must return an error within ~timeout_s, not stack
+    (regression: stacked 900 s read timeouts stalled a job for >80 min)."""
+    import time as _time
+
+    from req3.executor.opencode import OpencodeExecutor
+
+    class SlowRepairClient:
+        def __init__(self):
+            self.calls = 0
+
+        async def post(self, path, **kwargs):
+            self.calls += 1
+            if path == "/session":
+                class R:
+                    status_code = 200
+
+                    def raise_for_status(self):
+                        pass
+
+                    def json(self):
+                        return {"id": "ses_test"}
+
+                return R()
+
+            class Resp:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    # first reply invalid -> triggers repair; repair sleeps
+                    return {"info": {"structured": {"bogus": True}}}
+
+            if self.calls == 2:  # the initial message call
+                return Resp()
+            # repair call: behave like httpx — honor the read timeout we
+            # were given (the budget remainder), then cancel
+            import httpx as _httpx
+
+            await asyncio.sleep(float(kwargs["timeout"].read))
+            raise _httpx.ReadTimeout("read timed out")
+
+    schema = {"type": "object", "required": ["spec"], "additionalProperties": False,
+              "properties": {"spec": {"type": "object"}}}
+    ex = OpencodeExecutor("http://opencode-test:1", required_agents=())
+    ex._client = SlowRepairClient()
+    t0 = _time.monotonic()
+    result = await ex.run_agent(tmp_path, "spec-designer", "p", schema=schema,
+                                timeout_s=2)
+    elapsed = _time.monotonic() - t0
+    assert result.error and "schema repair call failed" in result.error
+    assert "ReadTimeout" in result.error or "Timeout" in result.error
+    assert elapsed < 5, f"budget not enforced: {elapsed:.1f}s"

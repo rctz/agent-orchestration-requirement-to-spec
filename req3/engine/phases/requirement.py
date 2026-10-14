@@ -255,8 +255,13 @@ async def req_design(ctx: JobContext):
     state["answers"] = {}
     state["change_request"] = None
     state["question_round"] = state.get("question_round", 0)
+    # The caller's project name (options.project_name) is the source of
+    # truth. Adopt the LLM's doc.project only when the caller never named
+    # the project — never overwrite a caller-provided name.
     await ctx.save(
-        versions=versions, project=doc.get("project", ctx.job.project), state=state
+        versions=versions,
+        project=(ctx.job.project or doc.get("project")),
+        state=state,
     )
     await ctx.event(
         "requirements_version_created",

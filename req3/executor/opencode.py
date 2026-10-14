@@ -144,11 +144,24 @@ class OpencodeExecutor:
         session_id: str | None = None
         message: dict[str, Any] | None = None
         last_error = ""
+        # One overall budget for the whole call (session + message +
+        # schema-repair retries). Without it, transport retries x schema
+        # repairs x read-timeout stack into multi-hour calls (observed
+        # live: a 900 s read timeout inside the repair loop, retried at
+        # the engine level, stalled a job for >80 min).
+        deadline = started + float(timeout_s)
+
+        def remaining() -> float:
+            left = deadline - time.monotonic()
+            return max(left, 1.0)
+
         for attempt in range(self._transport_retries + 1):
             try:
                 if session_id is None:
                     session_resp = await self._client.post(
-                        "/session", json={"title": agent}, params={"directory": directory}
+                        "/session", json={"title": agent},
+                        params={"directory": directory},
+                        timeout=httpx.Timeout(30.0, read=remaining()),
                     )
                     session_resp.raise_for_status()
                     session_id = session_resp.json()["id"]
@@ -156,7 +169,7 @@ class OpencodeExecutor:
                     f"/session/{session_id}/message",
                     json=body,
                     params={"directory": directory},
-                    timeout=httpx.Timeout(30.0, read=float(timeout_s)),
+                    timeout=httpx.Timeout(30.0, read=remaining()),
                 )
                 if response.status_code in _RETRYABLE_STATUS and attempt < self._transport_retries:
                     raise httpx.TransportError(f"HTTP {response.status_code}")
@@ -200,13 +213,16 @@ class OpencodeExecutor:
                             "format": {"type": "json_schema", "schema": schema},
                         },
                         params={"directory": directory},
-                        timeout=httpx.Timeout(30.0, read=float(timeout_s)),
+                        timeout=httpx.Timeout(30.0, read=remaining()),
                     )
                     repair_resp.raise_for_status()
                     message = repair_resp.json()
                 except (httpx.HTTPError, ValueError) as exc:
                     return AgentResult(
-                        error=f"schema repair call failed: {exc}",
+                        # str(ReadTimeout()) is EMPTY — always name the type,
+                        # or the event log shows "failed: " (observed live).
+                        error=f"schema repair call failed: "
+                              f"{type(exc).__name__}: {exc}",
                         session_id=session_id,
                         duration_s=round(time.monotonic() - started, 3),
                     )
