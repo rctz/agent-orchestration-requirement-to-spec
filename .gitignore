@@ -1,6 +1,7 @@
 # secrets — never commit
 .env
-contracts/req-lab-v3/API_KEY.txt   # live key — injected into dist packs only
+# live key — injected into dist packs only, never committed
+contracts/req-lab-v3/API_KEY.txt
 # local runtime data
 data/
 # python
