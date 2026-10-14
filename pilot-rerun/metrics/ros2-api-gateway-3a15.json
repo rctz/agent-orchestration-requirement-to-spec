@@ -1,0 +1,22 @@
+{
+  "job_id": "j_e413a598ff9b",
+  "status": "running",
+  "wall_s": null,
+  "waiting_s": 9.4,
+  "tokens": {
+    "req-designer": 137804,
+    "req-reviewer": 36199
+  },
+  "tokens_total": 174003,
+  "rounds": {
+    "req_review": 2,
+    "spec_review": 0
+  },
+  "versions": {
+    "requirements": 4,
+    "spec": 0
+  },
+  "known_issues": 3,
+  "error": null,
+  "project": "ros2-api-gateway-3a15"
+}

@@ -491,6 +491,43 @@ async def test_executor_call_has_overall_time_budget(tmp_path):
 
     schema = {"type": "object", "required": ["spec"], "additionalProperties": False,
               "properties": {"spec": {"type": "object"}}}
+
+    # streaming-style client: keeps the connection alive forever (no chunk
+    # gap) — read timeouts would never fire; wait_for must still cut it off
+    class TricklingClient(SlowRepairClient):
+        async def post(self, path, **kwargs):
+            self.calls += 1
+            if path == "/session":
+                class R:
+                    status_code = 200
+
+                    def raise_for_status(self):
+                        pass
+
+                    def json(self):
+                        return {"id": "ses_test"}
+
+                return R()
+
+            class Resp:
+                status_code = 200
+
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {"info": {"structured": {"spec": {}}}}
+
+            await asyncio.sleep(30)  # one slow first byte, forever
+            return Resp()
+
+    ex2 = OpencodeExecutor("http://opencode-test:1", required_agents=())
+    ex2._client = TricklingClient()
+    t0 = _time.monotonic()
+    r2 = await ex2.run_agent(tmp_path, "spec-designer", "p", schema=schema,
+                             timeout_s=2)
+    assert "overall budget" in (r2.error or ""), r2.error
+    assert _time.monotonic() - t0 < 10
     ex = OpencodeExecutor("http://opencode-test:1", required_agents=())
     ex._client = SlowRepairClient()
     t0 = _time.monotonic()

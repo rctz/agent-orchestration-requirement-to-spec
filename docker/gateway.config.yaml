@@ -2,7 +2,7 @@
 # Secrets come from env (.env via compose env_file), never from this file.
 listen: 0.0.0.0:7790
 max_concurrent_jobs: 5
-step_timeout_s: 900
+step_timeout_s: 1200
 step_retries: 2
 question_ttl_s: 86400
 max_question_rounds: 5

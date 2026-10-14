@@ -123,6 +123,32 @@ class OpencodeExecutor:
         attachments: list[Path] | None = None,
         timeout_s: int = 900,
     ) -> AgentResult:
+        # HARD overall deadline. Read timeouts alone are not enough: httpx
+        # read timeout measures the gap between chunks, so a trickling
+        # (streaming/keep-alive) response never triggers it — observed live
+        # as an attempt hanging 35+ min past its budget. wait_for cancels
+        # the whole call (transport retries + schema repairs) at the wall.
+        try:
+            return await asyncio.wait_for(
+                self._run_agent(job_dir, agent, prompt, schema, attachments,
+                                timeout_s),
+                timeout=float(timeout_s) + 5.0,
+            )
+        except TimeoutError:
+            return AgentResult(
+                error=f"agent call exceeded the {timeout_s}s overall budget",
+                duration_s=float(timeout_s) + 5.0,
+            )
+
+    async def _run_agent(
+        self,
+        job_dir: Path,
+        agent: str,
+        prompt: str,
+        schema: dict[str, Any] | None = None,
+        attachments: list[Path] | None = None,
+        timeout_s: int = 900,
+    ) -> AgentResult:
         started = time.monotonic()
         directory = str(Path(job_dir).resolve())
         parts: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
