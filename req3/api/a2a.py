@@ -83,10 +83,28 @@ AGENT_CARD = {
 }
 
 
+def public_base(request: Request) -> str:
+    """Externally visible base URL: config.public_url, else the request URL
+    with X-Forwarded-Proto/Host honoured (tunnel / reverse proxy)."""
+    cfg = getattr(request.app.state, "config", None)
+    configured = getattr(cfg, "public_url", "") if cfg is not None else ""
+    if configured:
+        return configured.rstrip("/")
+    base = str(request.base_url).rstrip("/")
+    proto = request.headers.get("x-forwarded-proto")
+    host = request.headers.get("x-forwarded-host")
+    if proto or host:
+        scheme, _, rest = base.partition("://")
+        netloc, _, path = rest.partition("/")
+        base = f"{(proto or scheme).split(',')[0].strip()}://{(host or netloc).split(',')[0].strip()}"
+        if path:
+            base += "/" + path
+    return base
+
+
 async def agent_card(request: Request) -> dict:
     card = dict(AGENT_CARD)
-    base = str(request.base_url).rstrip("/")
-    card["url"] = f"{base}/a2a"
+    card["url"] = f"{public_base(request)}/a2a"
     return card
 
 
@@ -201,7 +219,7 @@ async def a2a(request: Request) -> JSONResponse:
     req_id = body.get("id")
     method = str(body.get("method", ""))
     params = body.get("params") or {}
-    base_url = str(request.base_url).rstrip("/")
+    base_url = public_base(request)
 
     try:
         if method in SEND_ALIASES:

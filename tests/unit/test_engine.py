@@ -324,8 +324,16 @@ def test_restart_resumes_mid_phase(tmp_path):
     app1 = create_app(config, executor=fake1)
     with TestClient(app1) as client:
         job_id = _create(client)
-        running = _wait_status(client, job_id, {"running"})
-        assert running["phase"] == "req_design"
+        # status "running" is saved before the phase; wait until the
+        # designer call is actually in flight (fixes a timing flake)
+        deadline = time.monotonic() + 10
+        running = {}
+        while time.monotonic() < deadline:
+            running = client.get(f"/v1/jobs/{job_id}", headers=AUTH).json()
+            if running.get("phase") == "req_design" and fake1.prompts:
+                break
+            time.sleep(0.02)
+        assert running["phase"] == "req_design", running
     # app1 shut down mid-call; job persists as running/req_design
     fake2 = FakeExecutor(
         [

@@ -246,6 +246,10 @@ class JobRunner:
     async def _dispatch(self, ctx: JobContext, phase: str):
         if phase == "repo_resolve":
             return await self._repo_resolve(ctx)
+        if phase == "repo_scan":
+            from .phases.repo import repo_scan
+
+            return await repo_scan(ctx)
         if phase == "req_design":
             return await self._requirement.req_design(ctx)
         if phase == "req_review":
@@ -271,23 +275,89 @@ class JobRunner:
         raise PhaseError(f"unknown phase {phase!r}", code="engine_error")
 
     async def _repo_resolve(self, ctx: JobContext):
-        """Design §10 / §2A.5 — local_path repos scan; git_url is refused."""
-        if ctx.job.repo:
-            repo = json.loads(ctx.job.repo)
-            if repo.get("git_url"):
-                raise PhaseError(
-                    "git_url repos are not supported yet (local path only for now)",
-                    code="phase_unavailable",
-                )
-            # validate early so failures surface as job_failed, not later
-            from .phases.repo import resolve_repo_root
+        """Design §10 / §2A.5: explicit field or prompt regex -> validate ->
+        ambiguity handling -> fetch (shallow clone / snapshot) -> repo_scan."""
+        from ..repo import fetch as repo_fetch
+        from ..repo import resolve as rr
 
-            resolve_repo_root(repo.get("path", ""), ctx.config.repo.allowed_roots)
-            await ctx.save(phase="repo_scan", status="running")
-            await ctx.event("repo_resolved", {"repo": repo, "scan": True})
-            from .phases.repo import repo_scan
+        cfg = ctx.config.repo
+        state = dict(ctx.state)
+        record = json.loads(ctx.job.repo) if ctx.job.repo else None
+        ls_remote = rr.git_ls_remote
 
-            return await repo_scan(ctx)
-        await ctx.event("repo_resolved", {"repo": None, "note": "no repo in request"})
-        return ("continue", "req_design")
+        # Answer to an earlier "which repo?" question (questions gate).
+        if record is None and state.get("repo_question_pending"):
+            answer = (state.get("answers", {}).get("Q-00") or "").strip()
+            state.pop("repo_question_pending", None)
+            state.pop("resume_phase", None)
+            await ctx.save(state=state)
+            cands = rr.extract_candidates(answer) if answer else []
+            valid = await asyncio.to_thread(rr.validate, cands, cfg.allowed_roots, ls_remote)
+            if not valid:
+                await ctx.event("repo_resolved", {"repo": None, "note": "proceeding without repo"})
+                return ("continue", "req_design")
+            record = valid[0].as_record()
+        elif record is not None and not record.get("kind"):
+            # explicit request field: must be valid, otherwise fail loudly
+            cand = rr.from_field(record)
+            valid = await asyncio.to_thread(rr.validate, [cand], cfg.allowed_roots, ls_remote)
+            if not valid:
+                raise PhaseError("; ".join(cand.errors) or "invalid repo", code="invalid_repo")
+            record = cand.as_record()
+        elif record is None:
+            cands = rr.extract_candidates(ctx.job.prompt)
+            valid = await asyncio.to_thread(rr.validate, cands, cfg.allowed_roots, ls_remote)
+            if len(valid) == 1:
+                record = valid[0].as_record()
+            elif len(valid) > 1 or (not valid and (cands or rr.mentions_repo(ctx.job.prompt))):
+                # ambiguous: ask the caller once (default: proceed without repo)
+                listed = ", ".join(c.url or c.path or "" for c in (valid or cands)) or "-"
+                state["repo_question_pending"] = True
+                state["resume_phase"] = "repo_resolve"
+                await ctx.save(state=state)
+                await ctx.event("repo_ambiguous", {
+                    "candidates": [c.as_record() | {"errors": c.errors} for c in cands]})
+                ttl = ctx.options.get("question_ttl_s", ctx.config.question_ttl_s)
+                import datetime as dt
 
+                return ("gate", "questions", {
+                    "questions": [{
+                        "id": "Q-00",
+                        "text": "Which existing repository should this work build on? "
+                                "Reply with a git URL or an absolute path, or 'none'.",
+                        "why": f"The request mentions a codebase. Candidates found: {listed}",
+                        "kind": "free_text",
+                        "default_answer": "none",
+                        "default_rationale": "Proceed without a repository.",
+                    }],
+                    "questions_expire_at": (
+                        dt.datetime.now(dt.UTC) + dt.timedelta(seconds=int(ttl))
+                    ).isoformat(),
+                    "event_type": "questions_asked",
+                })
+            else:
+                await ctx.event("repo_resolved", {"repo": None, "note": "no repo found"})
+                return ("continue", "req_design")
+
+        # fetch into data/jobs/<id>/repo (read-only copy; nothing is executed)
+        dest = ctx.workspace.repo
+        try:
+            if record["kind"] == "git":
+                cand = rr.Candidate("git", record["source"], url=record["url"],
+                                    ref=record.get("ref"))
+                info = await asyncio.to_thread(repo_fetch.clone, cand, dest, cfg.max_mb)
+            elif cfg.path_mode == "snapshot":
+                info = await asyncio.to_thread(
+                    repo_fetch.snapshot, Path(record["path"]), dest, cfg.max_mb)
+            else:
+                info = {}
+        except repo_fetch.FetchError as exc:
+            raise PhaseError(str(exc), code="invalid_repo") from exc
+        record.update({k: v for k, v in info.items() if k == "commit_sha" and v})
+        record["scan_root"] = (
+            str(dest) if record["kind"] == "git" or cfg.path_mode == "snapshot"
+            else record["path"]
+        )
+        await ctx.save(repo=json.dumps(record), phase="repo_scan", status="running")
+        await ctx.event("repo_resolved", {"repo": record, "scan": True})
+        return ("continue", "repo_scan")

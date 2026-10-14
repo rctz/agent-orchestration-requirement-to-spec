@@ -171,7 +171,10 @@ def main() -> None:
     import uvicorn
 
     host, port = config.host_port
-    uvicorn.run(create_app(config), host=host, port=port, log_level="info")
+    uvicorn.run(
+        create_app(config), host=host, port=port, log_level="info",
+        proxy_headers=True, forwarded_allow_ips="*",
+    )
 
 
 if __name__ == "__main__":

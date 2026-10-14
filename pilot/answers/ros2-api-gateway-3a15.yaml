@@ -1,0 +1,9 @@
+# Answers implied by the v2 final requirements (06-requirements-v6.md
+# decisions D-01..D-06, user answer table §7). Substring-matched against
+# req3 questions. Sources: appendix/01-user-decisions.md D-01..D-04.
+direction: "HTTP REST server in front of ROS 2: HTTP -> topic publish (POST), HTTP <- topic latest message (GET), HTTP -> service call (POST)"
+mapping: "Static YAML config file loaded at startup maps each HTTP endpoint path to exactly one ROS 2 topic or service; no dynamic discovery, no actions in round 1"
+security: "Trusted LAN only: bind a private interface, plain HTTP (no TLS in round 1), shared static bearer token on every request; wrong or missing token -> 401"
+environment: "ROS 2 Humble on Ubuntu 22.04, rclpy, single machine, RMW pinned to the Humble default"
+limits: "Request body limit 1 MiB -> 413; max 16 concurrent connections; max 64 routes"
+language: "All requirements and specs in English (artifacts are English); the original prompt language does not change artifact language"

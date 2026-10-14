@@ -1,8 +1,9 @@
 """Repo integration (design §10, D12; plan M7): scan a codebase before
 requirements design and hand the designers a bounded, schema-validated summary.
 
-Scope: local_path repos under config.repo.allowed_roots (read-only walk).
-git_url resolution is an honest refusal until it is implemented.
+repo_resolve (engine/runner.py + req3/repo/) has already validated the repo
+and fetched it into data/jobs/<id>/repo (shallow clone or snapshot); the job
+record carries `scan_root`. Large repos fan out to scan-worker sub-agents.
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ KEY_HINTS = ("readme", "package.json", "pyproject.toml", "requirements.txt",
 MAX_FILES = 400
 MAX_FILE_BYTES = 512 * 1024
 MAX_TOTAL_CHARS = 120_000
+FANOUT_MIN_FILES = 150  # above this, ask the scanner to delegate per directory
 
 
 def resolve_repo_root(path_str: str, allowed_roots: list[str]) -> Path:
@@ -91,7 +93,12 @@ def collect_inventory(root: Path) -> tuple[list[dict[str, Any]], str]:
 
 async def repo_scan(ctx: JobContext):
     repo = json.loads(ctx.job.repo or "{}")
-    root = resolve_repo_root(repo.get("path", ""), ctx.config.repo.allowed_roots)
+    if repo.get("scan_root"):
+        root = Path(repo["scan_root"])
+        if not root.is_dir():
+            raise PhaseError(f"repo checkout missing: {root}", code="invalid_repo")
+    else:
+        root = resolve_repo_root(repo.get("path", ""), ctx.config.repo.allowed_roots)
     inventory, excerpts = collect_inventory(root)
     file_list = "\n".join(
         f"{f['kind']:>5} {f['bytes']:>8} {f['path']}" for f in inventory[0]["files"]
@@ -106,6 +113,15 @@ async def repo_scan(ctx: JobContext):
         f"FILE INVENTORY ({inventory[0]['file_count']} files):\n{file_list}\n\n"
         f"KEY FILE EXCERPTS:\n{excerpts or '(none)'}"
     )
+    if inventory[0]["file_count"] >= FANOUT_MIN_FILES:
+        top_dirs = sorted({f["path"].split("/")[0] for f in inventory[0]["files"]
+                           if "/" in f["path"]})
+        prompt += (
+            "\n\nThis repo is large. Delegate each top-level directory below to a "
+            "scan-worker sub-agent (task tool; the checkout is under ./repo/ in your "
+            "working directory, read-only) and merge their findings into ONE summary:\n"
+            + "\n".join(f"- {d}" for d in top_dirs[:12])
+        )
     result = await ctx.call_agent("repo-scanner", prompt, schema)
     summary = result.structured or {}
     errors = validate_named(summary, "repo_summary")

@@ -425,7 +425,7 @@ async def submit_answers(
         await db.update_job(
             job_id,
             status="running",
-            phase="req_design",
+            phase=state.get("resume_phase", "req_design"),
             gate=None,
             questions="[]",
             questions_expire_at=None,

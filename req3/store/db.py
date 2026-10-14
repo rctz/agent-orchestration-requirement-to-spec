@@ -73,6 +73,7 @@ _UPDATABLE_COLUMNS = frozenset(
         "project", "status", "phase", "gate", "round", "questions",
         "questions_expire_at", "requirements_preview", "versions",
         "known_issues", "error", "engine_state", "options", "output_profile",
+        "repo",  # resolved repo record (design §10 step e)
     }
 )
 

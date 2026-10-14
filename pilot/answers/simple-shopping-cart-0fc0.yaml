@@ -1,6 +1,8 @@
 # From v2 05-requirements-v5.md (D-01/D-02/D-03 + REQ-005/008/011).
+catalog: "Static hardcoded catalog of exactly 3 products: P-001 กาแฟ/Coffee 45.00 THB (4500 satang), P-002 ชา/Tea 15.50 THB (1550 satang), P-003 น้ำดื่ม/Drinking water 7.25 THB (725 satang). No product management."
 currency: "Thai baht with the ฿ prefix and two decimals (e.g. ฿46.50)"
-quantity: "Never clamp - preserve full state and report invalid attempts; a text input widget"
-Thai: "Product names shown to the user are Thai-only (English names are internal catalog metadata)"
+quantity: "Valid quantity is an integer 1-99 per line. Never clamp: any add/update/merge over 99 or non-integer/out-of-range value is rejected with an error; entire previous cart state preserved, no removal on 0, no partial updates"
+Thai: "Product names shown to the user are Thai-only (English names are internal catalog metadata); all visible UI text is Thai"
 cart total: "Exact sum of line totals rendered with ฿ prefix, two decimals"
 empty cart: "Grand total renders ฿0.00"
+language: "All requirements and specs in English (artifacts are English); only UI text shown to end users is Thai"

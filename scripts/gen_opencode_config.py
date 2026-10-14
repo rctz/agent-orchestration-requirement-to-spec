@@ -98,7 +98,7 @@ def main() -> None:
     out_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n",
                         encoding="utf-8")
     print(f"wrote {out_path} ({len(config['agent'])} agents, "
-          f"models: {sorted(set([args.design_model, args.review_model]))})")
+          f"models: {sorted({args.design_model, args.review_model})})")
 
 
 if __name__ == "__main__":

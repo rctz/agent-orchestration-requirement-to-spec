@@ -57,16 +57,17 @@ def main() -> int:
     parser.add_argument("--poll", type=float, default=2.0)
     args = parser.parse_args()
 
-    key = open(args.api_key_file, encoding="utf-8").read().strip()
+    with open(args.api_key_file, encoding="utf-8") as fh:
+        key = fh.read().strip()
     started = time.monotonic()
 
     job_id = args.job_id
     if job_id is None:
-        prompt = (
-            open(args.prompt_file, encoding="utf-8").read()
-            if args.prompt_file
-            else args.prompt
-        )
+        if args.prompt_file:
+            with open(args.prompt_file, encoding="utf-8") as fh:
+                prompt = fh.read()
+        else:
+            prompt = args.prompt
         assert prompt, "need --prompt or --prompt-file"
         status, body = request(
             args.base_url, key, "POST", "/v1/jobs", {"prompt": prompt}
@@ -94,14 +95,14 @@ def main() -> int:
                 gate_seen["answered"] = True
                 answers = json.loads(args.answers_json)
                 print("answering:", json.dumps(answers), flush=True)
-                status, reply = request(
+                status, _reply = request(
                     args.base_url, key, "POST",
                     f"/v1/jobs/{job_id}/answers", {"answers": answers},
                 )
                 print(f"answers -> {status}", flush=True)
             elif gate == "confirm_requirements" and args.confirm and not gate_seen.get("confirmed"):
                 gate_seen["confirmed"] = True
-                status, reply = request(
+                status, _reply = request(
                     args.base_url, key, "POST",
                     f"/v1/jobs/{job_id}/answers", {"action": "confirm"},
                 )

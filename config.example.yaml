@@ -28,6 +28,8 @@ models:                        # logical tiers -> LiteLLM model names (design §
 opencode_url: http://opencode:4096
 data_dir: /data
 
+public_url: ""                 # external base URL behind a tunnel/proxy, e.g. https://req3.rctz.online
+
 repo:                          # design §10 "Repo option"
   allowed_roots: []            # host dirs mounted into the container, e.g. [/home/pi/repos]
   path_mode: snapshot          # snapshot | readonly_mount

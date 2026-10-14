@@ -93,6 +93,15 @@ async def spec_design(ctx: JobContext):
             f"- Size class {size}: respect the component budget.\n"
             "- Plain English; IDs C-01/I-01/B-01/T-01, stable, never reused.\n"
         )
+        if size == "L":
+            # design §6: L-size specs fan out per component to spec-worker
+            parts.append(
+                "This is an L-size project. First decide the component list "
+                "(C-01..), then delegate each component to a spec-worker "
+                "sub-agent (task tool) with the requirements it satisfies and "
+                "the id ranges it must use; merge their drafts into ONE spec, "
+                "resolving overlaps and keeping ids unique."
+            )
         parts.append(
             f"CONFIRMED REQUIREMENTS (authoritative):\n"
             f"{json.dumps(requirements, ensure_ascii=False, indent=2)}"

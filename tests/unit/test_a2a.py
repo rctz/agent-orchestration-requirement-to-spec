@@ -271,3 +271,20 @@ def test_a2a_cancelled_job_projects_canceled(tmp_path):
         assert result["status"]["state"] == "canceled"
         text = result["status"]["message"]["parts"][0]["text"]
         assert "cancel" in text.lower()
+
+
+def test_agent_card_url_honours_proxy_and_public_url(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from req3.config import Config
+    from req3.main import create_app
+
+    cfg = Config(data_dir=str(tmp_path / "d"), api_key="k")
+    with TestClient(create_app(cfg, executor=FakeExecutor())) as c:
+        card = c.get("/.well-known/agent.json", headers={
+            "X-Forwarded-Proto": "https", "X-Forwarded-Host": "req3.example.org"}).json()
+        assert card["url"] == "https://req3.example.org/a2a"
+    cfg2 = Config(data_dir=str(tmp_path / "d2"), api_key="k",
+                  public_url="https://req3.rctz.online/")
+    with TestClient(create_app(cfg2, executor=FakeExecutor())) as c:
+        assert c.get("/.well-known/agent.json").json()["url"] == "https://req3.rctz.online/a2a"

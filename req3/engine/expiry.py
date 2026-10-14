@@ -68,7 +68,7 @@ async def _expire_questions(db: Database, engine: Engine, record: Any) -> None:
     await db.update_job(
         record.job_id,
         status="running",
-        phase="req_design",
+        phase=state.get("resume_phase", "req_design"),
         gate=None,
         questions="[]",
         questions_expire_at=None,

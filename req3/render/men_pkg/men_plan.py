@@ -299,7 +299,7 @@ class MenPlan(Converter):
         if options.get("title"):
             return options["title"]
         iv = p.get("intake_verbatim") or ""
-        first = re.split(r"(?<=[.!?])\s", iv.strip(), 1)[0]
+        first = re.split(r"(?<=[.!?])\s", iv.strip(), maxsplit=1)[0]
         return (first or p["provenance"]["slug"])[:140]
 
     @staticmethod

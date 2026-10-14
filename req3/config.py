@@ -104,6 +104,10 @@ class Config(BaseModel):
     executor: Literal["stub", "opencode"] = "stub"  # design §2.1: config-selected
     roles_path: str = "roles.yaml"  # backend-neutral roles (drives required agents)
     repo: RepoConfig = RepoConfig()
+    # Externally visible base URL (e.g. https://req3.rctz.online behind a
+    # tunnel). Used in the agent card and artifact links; when empty the
+    # request base URL is used (honouring X-Forwarded-* headers).
+    public_url: str = ""
 
     # Secrets: env only, never YAML.
     api_key: str = ""
