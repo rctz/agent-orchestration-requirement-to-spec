@@ -190,8 +190,16 @@ def _task_from_job(job: dict[str, Any], base_url: str) -> dict[str, Any]:
 
 async def _map_answer(text: str, data: dict, job: dict) -> dict:
     """v2 conventions -> req3 answers body (or a revise marker)."""
-    if isinstance(data.get("answers"), dict):
-        return {"answers": data["answers"]}
+    answers = data.get("answers")
+    if isinstance(answers, dict) and answers:
+        out = {"answers": answers}
+        if data.get("apply_defaults"):
+            out["apply_defaults"] = True
+        return out
+    if isinstance(answers, dict) and data.get("apply_defaults"):
+        # empty answers + explicit defaults acceptance (contract client
+        # `answer --defaults`): must NOT fall into "no answers supplied"
+        return {"apply_defaults": True}
     action = data.get("action")
     if action == "confirm":
         return {"action": "confirm"}

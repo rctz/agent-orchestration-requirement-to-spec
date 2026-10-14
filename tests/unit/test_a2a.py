@@ -288,3 +288,16 @@ def test_agent_card_url_honours_proxy_and_public_url(tmp_path):
                   public_url="https://req3.rctz.online/")
     with TestClient(create_app(cfg2, executor=FakeExecutor())) as c:
         assert c.get("/.well-known/agent.json").json()["url"] == "https://req3.rctz.online/a2a"
+
+
+@pytest.mark.asyncio()
+async def test_a2a_apply_defaults_with_empty_answers(tmp_path):
+    """Regression: `answer <id> --defaults` sends answers={} + apply_defaults;
+    the mapper must forward apply_defaults, not fall into 'no answers'."""
+    from req3.api.a2a import _map_answer
+    out = await _map_answer("", {"answers": {}, "apply_defaults": True}, {})
+    assert out == {"apply_defaults": True}
+    out = await _map_answer("", {"answers": {"Q-01": "x"}, "apply_defaults": True}, {})
+    assert out == {"answers": {"Q-01": "x"}, "apply_defaults": True}
+    out = await _map_answer("", {"answers": {"Q-01": "x"}}, {})
+    assert out == {"answers": {"Q-01": "x"}}

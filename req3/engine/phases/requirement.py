@@ -56,7 +56,8 @@ def append_decision(
 
 
 def record_gate_decisions(
-    workspace: Path, answers: dict[str, str], defaults_applied: list[dict[str, Any]]
+    workspace: Path, answers: dict[str, str], defaults_applied: list[dict[str, Any]],
+    defaults_source: str = "system_default_expired",
 ) -> list[dict[str, Any]]:
     """Build decision entries for gate answers / expiry defaults.
 
@@ -91,7 +92,7 @@ def record_gate_decisions(
         entries.append(
             {"id": decision_id, "question_id": question.get("id", "Q-??"),
              "answer": question.get("default_answer", ""),
-             "source": "system_default_expired"}
+             "source": defaults_source}
         )
     return entries
 

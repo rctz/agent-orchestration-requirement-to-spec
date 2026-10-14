@@ -132,7 +132,7 @@ def test_partial_answers_wait_then_apply_defaults(tmp_path):
         assert confirm["gate"] == "confirm_requirements"
         sources = {d["question_id"]: d["source"] for d in confirm["requirements_preview"]["decisions"]}
         assert sources["Q-01"] == "user"
-        assert sources["Q-02"] == "system_default_expired"
+        assert sources["Q-02"] == "defaults_accepted"  # deliberate, not expiry
 
 
 def test_unknown_question_id_rejected(tmp_path):

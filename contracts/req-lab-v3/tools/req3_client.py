@@ -67,9 +67,18 @@ def rpc(base: str, method: str, params: dict) -> tuple[int, dict]:
     status, body = call(base, "POST", "/a2a",
                         {"jsonrpc": "2.0", "id": 1, "method": method,
                          "params": params})
-    if status != 200 or "error" in body:
-        return status, body
-    return status, body.get("result", {})
+    if status != 200:
+        sys.exit(f"gateway error ({status}): {body}")
+    if body.get("error"):
+        # JSON-RPC errors ride on HTTP 200 — surface them loudly; a silent
+        # no-op here strands jobs at their gate (observed live).
+        err = body["error"]
+        sys.exit(f"req3 rejected the call: "
+                 f"[{err.get('code')}] {err.get('message')}")
+    result = body.get("result", {})
+    if not isinstance(result, dict) or "id" not in result:
+        sys.exit(f"unexpected reply from req3: {str(body)[:300]}")
+    return status, result
 
 
 def _fmt_task(task: dict) -> str:

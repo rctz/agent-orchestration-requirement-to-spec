@@ -420,7 +420,11 @@ async def submit_answers(
             return job_status_body(updated)
         unanswered = [q for q in questions if q["id"] not in answered]
         workspace = Workspace(request.app.state.workspace_root, job_id)
-        entries = record_gate_decisions(workspace.root, answered, unanswered)
+        entries = record_gate_decisions(
+            workspace.root, answered, unanswered,
+            defaults_source=("defaults_accepted" if body.apply_defaults
+                             else "system_default_expired"),
+        )
         state.setdefault("decision_log", []).extend(entries)
         await db.update_job(
             job_id,
