@@ -1,7 +1,7 @@
 ---
 name: req-lab-v3
 description: "Call req3: turns a raw requirement into a confirmed requirements document + review-checked design spec. Use when you need requirements or a spec produced. Long-running service you drive through gates by relaying to your user (questions in, their answers and approval back) until artifacts download."
-version: 1.3.0
+version: 1.4.0
 ---
 
 # req-lab-v3 — calling guide
@@ -49,9 +49,19 @@ python3 tools/req3_client.py start "We need a web UI for borrowing lab equipment
 
 - The text is the user's raw requirement, **any language, passed verbatim —
   never summarize or translate it**.
-- `--output-format default` -> `requirement.md` + `spec.md` + `manifest.json`.
-  Use `json` for raw canonical JSON. Omit only if the owner told you
-  otherwise.
+- `--output-format <name>` picks the artifact format, **fixed for the
+  whole job** (chosen at start, cannot change later). Options:
+
+| name | files | use when |
+|---|---|---|
+| `default` | `requirement.md` + `spec.md` (+ `manifest.json`) | humans/agents reading documents (recommended) |
+| `json` | `requirements.json` + `spec.json` | you want raw canonical JSON to process |
+| `men` | `requirement.json` + `spec.md` + `plan.md` + `traceability.json` | the Men orchestrator pipeline |
+
+  Omitting the flag defaults to `men`. Custom profiles may also be
+  registered server-side — list what is available any time with
+  `python3 tools/req3_client.py formats`. An unknown name fails fast at
+  start with the valid list.
 - Prints: `task <task_id>: ...` — **remember that id**, every later command
   needs it.
 

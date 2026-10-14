@@ -282,6 +282,27 @@ def cmd_preview(a):
     return 0
 
 
+DESCR = {
+    "default": "requirement.md + spec.md (+ manifest.json) — markdown, best for humans/agents",
+    "json": "requirements.json + spec.json — raw canonical JSON",
+    "men": "orchestrator bundle: requirement.json + spec.md + plan.md + traceability.json",
+}
+
+
+def cmd_formats(a):
+    status, body = call(a.url, "GET", "/v1/output-profiles")
+    if status != 200:
+        sys.exit(f"formats failed ({status}): {body}")
+    print("output formats (pick one at start: --output-format NAME; fixed for the job):")
+    for name in body.get("builtin", []):
+        print(f"  {name:10s} {DESCR.get(name, 'builtin profile')}")
+    for name in body.get("registered", []):
+        print(f"  {name:10s} custom registered profile")
+    if not body.get("registered"):
+        print("  (no custom profiles registered)")
+    return 0
+
+
 def cmd_cancel(a):
     status, task = rpc(a.url, "tasks/cancel", {"id": a.task_id})
     if status != 200:
@@ -297,6 +318,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("info").set_defaults(fn=cmd_info)
+
+    sub.add_parser("formats").set_defaults(fn=cmd_formats)
 
     p = sub.add_parser("preview")
     p.add_argument("task_id")
