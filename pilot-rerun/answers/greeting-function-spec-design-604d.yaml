@@ -1,0 +1,5 @@
+# From v2 04-requirements-v4.md (R3-2 dispatch precedence, purity).
+non-string: "Reject non-strings with a TypeError"
+blank: "After trimming, blank strings fall back to the default greeting"
+precedence: "Reject non-strings -> trim -> blank fallback -> greet"
+default export: "No default export; inspect module namespace for its absence"

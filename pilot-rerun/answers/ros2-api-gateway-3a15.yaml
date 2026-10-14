@@ -1,0 +1,11 @@
+# Answers implied by the v2 final requirements (06-requirements-v6.md, user
+# decisions D-01..D-04). Keys are substrings of the ACTUAL Thai question text
+# (harvested from a live probe run, 2026-10-14).
+"interface": "REST over HTTP with JSON bodies (per v2 D-01): HTTP clients call the gateway; gateway bridges to ROS 2 topics/services"
+"ROS 2 ส่วนใด": "HTTP -> topic publish (POST), HTTP <- topic latest-message (GET), HTTP -> service call (POST). No action bridging, no dynamic discovery (v2 D-01/D-02)"
+"กำหนดชุด endpoint": "Static YAML config file loaded at startup maps each HTTP endpoint path to exactly one ROS 2 topic or service (v2 D-02); no auto bridge"
+"เวอร์ชันใด": "ROS 2 Humble on Ubuntu 22.04, written in Python with rclpy, single machine, RMW pinned to the Humble default (v2 D-04)"
+"ยืนยันตัวตน": "Trusted LAN only (v2 D-03): bind a private interface, plain HTTP without TLS, but every request must carry a shared static bearer token; wrong or missing token -> 401"
+"realtime": "Poll the latest message with plain HTTP GET is enough (v2 D-01): no WebSocket, no SSE, no subscription streams"
+"README": "English (all artifacts are English per owner rule); the original Thai prompt does not change artifact language"
+"ขนาด": "Request body limit 1 MiB -> 413; max 16 concurrent connections; max 64 routes (v2 D-04)"

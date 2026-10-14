@@ -1,8 +1,10 @@
-# From v2 05-requirements-v5.md (D-01/D-02/D-03 + REQ-005/008/011).
-catalog: "Static hardcoded catalog of exactly 3 products: P-001 กาแฟ/Coffee 45.00 THB (4500 satang), P-002 ชา/Tea 15.50 THB (1550 satang), P-003 น้ำดื่ม/Drinking water 7.25 THB (725 satang). No product management."
-currency: "Thai baht with the ฿ prefix and two decimals (e.g. ฿46.50)"
-quantity: "Valid quantity is an integer 1-99 per line. Never clamp: any add/update/merge over 99 or non-integer/out-of-range value is rejected with an error; entire previous cart state preserved, no removal on 0, no partial updates"
-Thai: "Product names shown to the user are Thai-only (English names are internal catalog metadata); all visible UI text is Thai"
-cart total: "Exact sum of line totals rendered with ฿ prefix, two decimals"
-empty cart: "Grand total renders ฿0.00"
-language: "All requirements and specs in English (artifacts are English); only UI text shown to end users is Thai"
+# Answers implied by the v2 final requirements (05-requirements-v5.md, user
+# decisions D-01..D-03 / Q-01..Q-03). Keys are substrings of the ACTUAL Thai
+# question text (harvested from a live probe run, 2026-10-14).
+"ชื่อและราคา": "Static hardcoded catalog of exactly 3 products (v2 D-01): P-001 กาแฟ/Coffee 45.00 THB (4500 satang), P-002 ชา/Tea 15.50 THB (1550 satang), P-003 น้ำดื่ม/Drinking water 7.25 THB (725 satang). No product management."
+"จำนวนไม่ถูกต้อง": "Show an error message next to the quantity field (inline) AND reject the change entirely: valid quantity is an integer 1-99 per line; never clamp, preserve the entire previous cart state, no partial updates (v2 D-02)"
+"ภาษาใด": "The web page UI is Thai: all visible text, buttons and product names in Thai; amounts prefixed ฿ with exactly 2 decimals (฿45.00; empty-cart total renders ฿0.00). The requirement/spec documents themselves are English (v2 D-03)"
+"เพิ่มสินค้าลงตะกร้า": "Type an integer 1-99 in the quantity field and press add; adding a product already in the cart merges quantities into that line (capped by the same 1-99 validation)"
+"ยืนยันก่อนหรือไม่": "No confirmation: clear the cart immediately (v2 spec has an immediate clear button)"
+"เบราว์เซอร์": "Modern evergreen desktop browsers (latest Chrome, Firefox, Edge); no IE/legacy support"
+"repository": "none"
