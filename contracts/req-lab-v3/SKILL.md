@@ -19,8 +19,10 @@ tools/req3_client.py    # stdlib-only, Python 3, no dependencies
 ```
 
 - Endpoint: `https://req3.rctz.online` (default; override with `--url` or env `REQ3_URL`)
-- Auth: the API key ships in `API_KEY.txt` beside this file and is read
-  automatically. Nothing to configure.
+- Auth: an API key in `API_KEY.txt` beside this file is read
+  automatically. In the distributed pack it ships pre-filled; in this
+  repository it is intentionally absent (`API_KEY.example.txt` explains) —
+  ask the service owner for your own key.
 - Sanity check before first use (should print an agent card JSON):
 
 ```bash

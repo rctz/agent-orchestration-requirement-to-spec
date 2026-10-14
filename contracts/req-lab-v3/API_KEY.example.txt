@@ -1,0 +1,2 @@
+Get an API key from the req3 service owner and put it on ONE line in
+API_KEY.txt beside this file (or export REQ3_API_KEY).
