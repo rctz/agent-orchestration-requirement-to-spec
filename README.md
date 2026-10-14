@@ -54,9 +54,19 @@ REQ3_DEPLOY_HOST=pi@<host> scripts/deploy.sh
 
 The gateway publishes `:7790` (bearer-key guarded); the opencode executor
 stays on the internal compose network (`:4096` never published). Jobs and
-SQLite state live in the `req3-data` named volume; put repos you want
-scannable under a host dir mounted read-only at `/repos`
-(`repo.allowed_roots` in `docker/gateway.config.yaml`).
+SQLite state live in the `req3-data` named volume.
+
+**Repo option** (design §10): pass `repo: {"git_url": "...", "ref": "..."}`
+or `repo: {"path": "/abs/path"}` — or just mention the repo in the prompt
+(URL or path is auto-detected; ambiguous mentions ask one question). Git
+repos are shallow-cloned into the job workspace, local paths are snapshotted
+(read-only, size-capped), then scanned and fed to the designers as a bounded
+summary. Local paths must live under `repo.allowed_roots` (host dirs mounted
+read-only at `/repos` in the compose setup; `repo.max_mb` caps size).
+
+**Public URL**: set `public_url` in the gateway config when running behind a
+tunnel/reverse proxy so the agent card and artifact links carry the external
+origin (e.g. `https://req3.rctz.online`).
 
 ## Caller quickstart (curl only)
 
